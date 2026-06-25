@@ -3,11 +3,13 @@
 보카보카 250BT 커피 로스팅기(가마)를 위한 실시간 로스팅 프로파일러 macOS 애플리케이션입니다.
 블루투스(BLE)를 통해 로스터기와 연결하여 실시간 온도, 상승률(RoR), 발전 시간 비율(DTR) 등을 추적하고 체계적인 로스팅을 도와줍니다.
 
+
 <p align="center">
   <img src="icon.png" width="200" alt="보카보아 앱 아이콘">
 </p>
 
-<img width="491" height="391" alt="bocaboca" src="https://github.com/user-attachments/assets/287e7e27-45fd-4dce-ae7c-88ab86dad39e" />
+
+<img width="491" height="391" alt="bocaboca" src="https://github.com/user-attachments/assets/6bcc56bf-d017-4b75-9815-dca835039d41" />
 
 <img width="1412" height="1004" alt="image" src="https://github.com/user-attachments/assets/ec66c13e-d3d9-4f9d-8627-84b30f7f3c09" />
 

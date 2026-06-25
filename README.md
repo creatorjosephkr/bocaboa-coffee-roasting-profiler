@@ -7,6 +7,8 @@
   <img src="icon.png" width="200" alt="보카보아 앱 아이콘">
 </p>
 
+<img width="491" height="391" alt="bocaboca" src="https://github.com/user-attachments/assets/287e7e27-45fd-4dce-ae7c-88ab86dad39e" />
+
 <img width="1412" height="1004" alt="image" src="https://github.com/user-attachments/assets/ec66c13e-d3d9-4f9d-8627-84b30f7f3c09" />
 
 ## ✨ 주요 기능

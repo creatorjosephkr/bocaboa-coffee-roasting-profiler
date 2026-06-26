@@ -7,7 +7,7 @@
   <img src="icon.png" width="160" alt="보카보아 앱 아이콘">
 </p>
 
-<img width="1541" height="1050" alt="image" src="https://github.com/user-attachments/assets/11e57999-57b5-464a-8e42-4ccb36e092d4" />
+<img width="1720" height="1050" alt="image" src="https://github.com/user-attachments/assets/3c038229-d7a7-4b27-9d35-395a7b393181" />
 
 ---
 

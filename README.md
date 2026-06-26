@@ -15,7 +15,7 @@
   <img width="491" height="391" alt="bocaboca" src="https://github.com/user-attachments/assets/6bcc56bf-d017-4b75-9815-dca835039d41" />
 </p>
 
-<img width="1412" height="1004" alt="image" src="https://github.com/user-attachments/assets/ec66c13e-d3d9-4f9d-8627-84b30f7f3c09" />
+<img width="1541" height="1017" alt="image" src="https://github.com/user-attachments/assets/67165ddd-9052-41b2-b29d-d34a7cd4d9a9" />
 
 <p><!-- blank --></p>
 

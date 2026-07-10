@@ -1,0 +1,703 @@
+204:     private var sidebarView: some View {
+205:         VStack(spacing: 16) {
+206:             // 기기 연결 정보 카드
+207:             VStack(alignment: .leading, spacing: 8) {
+208:                 Text("장치 연결 정보")
+209:                     .font(.system(size: 11, weight: .bold))
+210:                     .foregroundColor(.textSecondary)
+211:                 
+212:                 HStack {
+213:                     Image(systemName: "cpu")
+214:                         .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textTertiary)
+215:                     VStack(alignment: .leading, spacing: 2) {
+216:                         let nickname = nicknameStore.nickname(for: manager.registeredDeviceUUIDString ?? "")
+217:                         Text(nickname ?? manager.registeredDeviceName ?? "등록된 기기 없음")
+218:                             .font(.system(size: 13, weight: .semibold))
+219:                             .foregroundColor(.textPrimary)
+220:                         Text(manager.connectionStatusText)
+221:                             .font(.system(size: 11))
+222:                             .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textSecondary)
+223:                     }
+224:                     Spacer()
+225:                     
+226:                     let isConnected = manager.selectedDevice?.status.isConnected == true
+227:                     Button {
+228:                         if isConnected {
+229:                             manager.unregisterAndDisconnect()
+230:                         } else if manager.isScanning {
+231:                             manager.stopScanning()
+232:                         } else if manager.registeredDeviceUUIDString != nil {
+233:                             manager.unregisterAndDisconnect()
+234:                         } else {
+235:                             manager.startScanning()
+236:                         }
+237:                     } label: {
+238:                         Text(isConnected ? "연결 해제" : (manager.isScanning ? "스캔 중지" : (manager.registeredDeviceUUIDString != nil ? "연결 해제" : "기기 검색")))
+239:                             .font(.system(size: 11, weight: .semibold))
+240:                     }
+241:                     .buttonStyle(.borderedProminent)
+242:                     .tint(isConnected ? .appError : (manager.isScanning ? .appError : .appAccent))
+243:                 }
+244:                 .padding(10)
+245:                 .background(Color.appSurface)
+246:                 .cornerRadius(8)
+247:                 .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+248:             }
+249:             .padding(.horizontal, 16)
+250:             .padding(.top, 16)
+251:             
+252:             // 기기 검색 리스트 (미연결 시 간이 표기)
+253:             if manager.selectedDevice == nil && (manager.isScanning || !manager.devices.isEmpty) {
+254:                 VStack(alignment: .leading, spacing: 6) {
+255:                     Text("주변 장치 검색 결과")
+256:                         .font(.system(size: 11, weight: .bold))
+257:                         .foregroundColor(.textSecondary)
+258:                     
+259:                     ScrollView {
+260:                         VStack(spacing: 4) {
+261:                             ForEach(manager.devices) { device in
+262:                                 Button {
+263:                                     manager.stopScanning()
+264:                                     manager.connect(device)
+265:                                 } label: {
+266:                                     HStack {
+267:                                         Text(device.name)
+268:                                             .font(.system(size: 12, weight: .medium))
+269:                                             .foregroundColor(.textPrimary)
+270:                                         Spacer()
+271:                                         Text("\(device.rssi) dBm")
+272:                                             .font(.system(size: 10, design: .monospaced))
+273:                                             .foregroundColor(.textSecondary)
+274:                                     }
+275:                                     .padding(.vertical, 6)
+276:                                     .padding(.horizontal, 8)
+277:                                     .contentShape(Rectangle())
+278:                                 }
+279:                                 .buttonStyle(.plain)
+280:                                 .background(Color.appSurface)
+281:                                 .cornerRadius(5)
+282:                                 .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.appBorder, lineWidth: 1))
+283:                             }
+284:                         }
+285:                     }
+286:                     .frame(maxHeight: 120)
+287:                 }
+288:                 .padding(.horizontal, 16)
+289:             }
+290:             
+291:             Divider().padding(.horizontal, 16)
+292:             
+293:             // 로스팅 세션 입력 폼
+294:             VStack(spacing: 12) {
+295:                     Text("로스팅 세션 설정")
+296:                         .font(.system(size: 11, weight: .bold))
+297:                         .foregroundColor(.textSecondary)
+298:                         .frame(maxWidth: .infinity, alignment: .leading)
+299:                     
+300:                     VStack(alignment: .leading, spacing: 5) {
+301:                         Text("커피 품종")
+302:                             .font(.system(size: 11, weight: .medium))
+303:                             .foregroundColor(.textSecondary)
+304:                         TextField("예: 에티오피아 예가체프", text: $manager.beanName)
+305:                             .textFieldStyle(.roundedBorder)
+306:                     }
+307:                     
+308:                     HStack(spacing: 12) {
+309:                         VStack(alignment: .leading, spacing: 5) {
+310:                             Text("투입 용량 (g)")
+311:                                 .font(.system(size: 11, weight: .medium))
+312:                                 .foregroundColor(.textSecondary)
+313:                             TextField("200", text: $manager.beanWeight)
+314:                                 .textFieldStyle(.roundedBorder)
+315:                         }
+316:                         
+317:                         VStack(alignment: .leading, spacing: 5) {
+318:                             Text("예열 온도 (°C)")
+319:                                 .font(.system(size: 11, weight: .medium))
+320:                                 .foregroundColor(.textSecondary)
+321:                             TextField("200", text: $manager.preheatTemp)
+322:                                 .textFieldStyle(.roundedBorder)
+323:                         }
+324:                     }
+325:                     
+326:                     VStack(alignment: .leading, spacing: 5) {
+327:                         Text("목표 DTR (%)")
+328:                             .font(.system(size: 11, weight: .medium))
+329:                             .foregroundColor(.textSecondary)
+330:                         HStack(spacing: 8) {
+331:                             Slider(value: dtrSliderBinding, in: 10.0...25.0)
+332:                             
+333:                             TextField("15.0", text: $manager.targetDTR)
+334:                                 .textFieldStyle(.roundedBorder)
+335:                                 .frame(width: 60)
+336:                                 .multilineTextAlignment(.center)
+337:                         }
+338:                         
+339:                         // 아그트론 그라데이션 바
+340:                         let agtronColors = [
+341:                             Color(hex: "#CE8101"), // 95
+342:                             Color(hex: "#C47C04"), // 85
+343:                             Color(hex: "#B46B0C"), // 75
+344:                             Color(hex: "#995515"), // 65
+345:                             Color(hex: "#8B4B1B"), // 55
+346:                             Color(hex: "#7A4719"), // 45
+347:                             Color(hex: "#673F1C"), // 35
+348:                             Color(hex: "#532C1B")  // 25
+349:                         ]
+350:                         
+351:                         VStack(spacing: 4) {
+352:                             RoundedRectangle(cornerRadius: 5)
+353:                                 .fill(LinearGradient(colors: agtronColors, startPoint: .leading, endPoint: .trailing))
+354:                                 .frame(height: 20)
+355:                             
+356:                             GeometryReader { geo in
+357:                                 let dtrVal = Double(manager.targetDTR) ?? 15.0
+358:                                 let clampedDtr = max(10.0, min(25.0, dtrVal))
+359:                                 let percent = (clampedDtr - 10.0) / 15.0
+360:                                 let indicatorWidth: CGFloat = 8.0
+361:                                 let safeWidth = geo.size.width - indicatorWidth
+362:                                 let indicatorX = (safeWidth * CGFloat(percent)) + (indicatorWidth / 2)
+363:                                 
+364:                                 ZStack(alignment: .topLeading) {
+365:                                     Image(systemName: "triangle.fill")
+366:                                         .font(.system(size: 8))
+367:                                         .foregroundColor(.appAccent)
+368:                                         .position(x: indicatorX, y: 4)
+369:                                     
+370:                                     Text("Agtron: #\(currentAgtronValue)")
+371:                                         .font(.system(size: 10, weight: .bold))
+372:                                         .foregroundColor(.appAccent)
+373:                                         .position(x: indicatorX, y: 16)
+374:                                 }
+375:                             }
+376:                             .frame(height: 26)
+377:                         }
+378:                         .padding(.top, 4)
+379:                         
+380:                         // 1행 3열 Agtron 상세 정보 테이블
+381:                         HStack(spacing: 0) {
+382:                             let detail = currentAgtronDetail
+383:                             
+384:                             VStack(spacing: 2) {
+385:                                 Text("수치 범위")
+386:                                     .font(.system(size: 9))
+387:                                     .foregroundColor(.textTertiary)
+388:                                 Text(detail.range)
+389:                                     .font(.system(size: 11, weight: .bold, design: .monospaced))
+390:                                     .foregroundColor(.textPrimary)
+391:                             }
+392:                             .frame(maxWidth: .infinity)
+393:                             
+394:                             Divider().frame(height: 20)
+395:                             
+396:                             VStack(spacing: 2) {
+397:                                 Text("일반 분류")
+398:                                     .font(.system(size: 9))
+399:                                     .foregroundColor(.textTertiary)
+400:                                 Text(detail.common)
+401:                                     .font(.system(size: 11, weight: .bold))
+402:                                     .foregroundColor(.textPrimary)
+403:                             }
+404:                             .frame(maxWidth: .infinity)
+405:                             
+406:                             Divider().frame(height: 20)
+407:                             
+408:                             VStack(spacing: 2) {
+409:                                 Text("SCA 분류")
+410:                                     .font(.system(size: 9))
+411:                                     .foregroundColor(.textTertiary)
+412:                                 Text(detail.sca)
+413:                                     .font(.system(size: 11, weight: .bold))
+414:                                     .foregroundColor(.textPrimary)
+415:                             }
+416:                             .frame(maxWidth: .infinity)
+417:                         }
+418:                         .padding(.vertical, 6)
+419:                         .background(Color.appSurface2)
+420:                         .cornerRadius(6)
+421:                         .overlay(
+422:                             RoundedRectangle(cornerRadius: 6)
+423:                                 .stroke(Color.appBorder, lineWidth: 1)
+424:                         )
+425:                         .padding(.top, 6)
+426:                     }
+427:                     
+428:                     VStack(alignment: .leading, spacing: 6) {
+429:                         HStack {
+430:                             Text("수동 열량 조절 (0~12)")
+431:                                 .font(.system(size: 11, weight: .medium))
+432:                                 .foregroundColor(.textSecondary)
+433:                             Spacer()
+434:                             if pendingHeat == manager.currentHeat {
+435:                                 Text("\(manager.currentHeat)")
+436:                                     .font(.system(size: 13, weight: .bold, design: .monospaced))
+437:                                     .foregroundColor(.textSecondary)
+438:                             } else {
+439:                                 Text("\(manager.currentHeat) → \(pendingHeat)")
+440:                                     .font(.system(size: 13, weight: .bold, design: .monospaced))
+441:                                     .foregroundColor(.appWarning)
+442:                             }
+443:                         }
+444:                         
+445:                         HStack {
+446:                             Slider(value: Binding(
+447:                                 get: { Double(pendingHeat) },
+448:                                 set: { pendingHeat = Int($0) }
+449:                             ), in: 0...12, step: 1.0)
+450:                             
+451:                             Stepper("", value: $pendingHeat, in: 0...12)
+452:                                 .labelsHidden()
+453:                         }
+454:                         
+455:                         Button {
+456:                             manager.adjustHeat(to: pendingHeat)
+457:                         } label: {
+458:                             Text("열량 변경 확인")
+459:                                 .font(.system(size: 11, weight: .bold))
+460:                                 .frame(maxWidth: .infinity)
+461:                                 .padding(.vertical, 4)
+462:                         }
+463:                         .buttonStyle(.borderedProminent)
+464:                         .tint(pendingHeat == manager.currentHeat ? Color.gray : Color.appAccent)
+465:                         .disabled(pendingHeat == manager.currentHeat)
+466:                     }
+467:                     .padding(8)
+468:                     .background(Color.appSurface)
+469:                     .cornerRadius(8)
+470:                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
+471:             }
+472:             .padding(.horizontal, 16)
+473:             
+474:             Divider().padding(.horizontal, 16)
+475:             
+476:             // 로스팅 진행 제어 버튼들
+477:             VStack(spacing: 8) {
+478:                 // 예열 시작
+479:                 Button {
+480:                     manager.startPreheating()
+481:                 } label: {
+482:                     HStack {
+483:                         Image(systemName: "flame.fill")
+484:                         Text("예열 시작")
+485:                             .fontWeight(.semibold)
+486:                     }
+487:                     .frame(maxWidth: .infinity)
+488:                     .padding(.vertical, 8)
+489:                 }
+490:                 .buttonStyle(.borderedProminent)
+491:                 .tint(.appWarning)
+492:                 .disabled(manager.roastState != .idle && manager.roastState != .completed)
+493:                 
+494:                 // 투입
+495:                 Button {
+496:                     manager.chargeBeans()
+497:                 } label: {
+498:                     HStack {
+499:                         Image(systemName: "tray.and.arrow.down.fill")
+500:                         Text("생두 투입")
+501:                             .fontWeight(.semibold)
+502:                     }
+503:                     .frame(maxWidth: .infinity)
+504:                     .padding(.vertical, 8)
+505:                 }
+506:                 .buttonStyle(.borderedProminent)
+507:                 .tint(.appAccent)
+508:                 .disabled(manager.roastState != .preheating)
+509:                 
+510:                 HStack(spacing: 8) {
+511:                     // 1팝
+512:                     Button {
+513:                         manager.triggerFirstPop()
+514:                     } label: {
+515:                         Text("1차 팝")
+516:                             .fontWeight(.semibold)
+517:                             .frame(maxWidth: .infinity)
+518:                             .padding(.vertical, 8)
+519:                     }
+520:                     .buttonStyle(.bordered)
+521:                     .tint(.orange)
+522:                     .disabled(manager.roastState != .roasting)
+523:                     
+524:                     // 2팝
+525:                     Button {
+526:                         manager.triggerSecondPop()
+527:                     } label: {
+528:                         Text("2차 팝")
+529:                             .fontWeight(.semibold)
+530:                             .frame(maxWidth: .infinity)
+531:                             .padding(.vertical, 8)
+532:                     }
+533:                     .buttonStyle(.bordered)
+534:                     .tint(.purple)
+535:                     .disabled(manager.roastState != .firstPop)
+536:                 }
+537:                 
+538:                 // 종료
+539:                 Button {
+540:                     manager.finishRoasting()
+541:                 } label: {
+542:                     HStack {
+543:                         Image(systemName: "stop.circle.fill")
+544:                         Text("종료 및 배출")
+545:                             .fontWeight(.semibold)
+546:                     }
+547:                     .frame(maxWidth: .infinity)
+548:                     .padding(.vertical, 10)
+549:                 }
+550:                 .buttonStyle(.borderedProminent)
+551:                 .tint(.appSuccess)
+552:                 .disabled(manager.roastState == .idle || manager.roastState == .completed)
+553: 
+554:                 if manager.roastState != .idle {
+--
+     private var sidebarView: some View {
+-        VStack(spacing: 16) {
++        VStack(spacing: 10) {
+             // 기기 연결 정보 카드
+-            VStack(alignment: .leading, spacing: 8) {
++            VStack(alignment: .leading, spacing: 5) {
+                 Text("장치 연결 정보")
+                     .font(.system(size: 11, weight: .bold))
+                     .foregroundColor(.textSecondary)
+@@ -240,7 +240,7 @@
+                     .buttonStyle(.borderedProminent)
+                     .tint(isConnected ? .appError : (manager.isScanning ? .appError : .appAccent))
+                 }
+-                .padding(10)
++                .padding(8)
+                 .background(Color.appSurface)
+                 .cornerRadius(8)
+                 .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+@@ -247,9 +247,9 @@
+             .padding(.horizontal, 16)
+-            .padding(.top, 16)
++            .padding(.top, 10)
+             
+             // 기기 검색 리스트 (미연결 시 간이 표기)
+             if manager.selectedDevice == nil && (manager.isScanning || !manager.devices.isEmpty) {
+-                VStack(alignment: .leading, spacing: 6) {
++                VStack(alignment: .leading, spacing: 4) {
+                     Text("주변 장치 검색 결과")
+                         .font(.system(size: 11, weight: .bold))
+                         .foregroundColor(.textSecondary)
+@@ -256,5 +256,5 @@
+                     ScrollView {
+-                        VStack(spacing: 4) {
++                        VStack(spacing: 3) {
+                             ForEach(manager.devices) { device in
+                                 Button {
+                                     manager.stopScanning()
+@@ -268,7 +268,7 @@
+                                             .font(.system(size: 10, design: .monospaced))
+                                             .foregroundColor(.textSecondary)
+                                     }
+-                                    .padding(.vertical, 6)
++                                    .padding(.vertical, 4)
+                                     .padding(.horizontal, 8)
+                                     .contentShape(Rectangle())
+                                 }
+@@ -278,7 +278,7 @@
+                             }
+                         }
+                     }
+-                    .frame(maxHeight: 120)
++                    .frame(maxHeight: 80)
+                 }
+                 .padding(.horizontal, 16)
+             }
+@@ -285,183 +285,183 @@
+             Divider().padding(.horizontal, 16)
+             
+             // 로스팅 세션 입력 폼
+-            VStack(spacing: 12) {
+-                    Text("로스팅 세션 설정")
+-                        .font(.system(size: 11, weight: .bold))
+-                        .foregroundColor(.textSecondary)
+-                        .frame(maxWidth: .infinity, alignment: .leading)
+-                    
+-                    VStack(alignment: .leading, spacing: 5) {
+-                        Text("커피 품종")
+-                            .font(.system(size: 11, weight: .medium))
+-                            .foregroundColor(.textSecondary)
+-                        TextField("예: 에티오피아 예가체프", text: $manager.beanName)
+-                            .textFieldStyle(.roundedBorder)
+-                    }
+-                    
+-                    HStack(spacing: 12) {
+-                        VStack(alignment: .leading, spacing: 5) {
+-                            Text("투입 용량 (g)")
+-                                .font(.system(size: 11, weight: .medium))
+-                                .foregroundColor(.textSecondary)
+-                            TextField("200", text: $manager.beanWeight)
+-                                .textFieldStyle(.roundedBorder)
+-                        }
+-                        
+-                        VStack(alignment: .leading, spacing: 5) {
+-                            Text("예열 온도 (°C)")
+-                                .font(.system(size: 11, weight: .medium))
+-                                .foregroundColor(.textSecondary)
+-                            TextField("200", text: $manager.preheatTemp)
+-                                .textFieldStyle(.roundedBorder)
+-                        }
+-                    }
+-                    
+-                    VStack(alignment: .leading, spacing: 5) {
+-                        Text("목표 DTR (%)")
+-                            .font(.system(size: 11, weight: .medium))
+-                            .foregroundColor(.textSecondary)
+-                        HStack(spacing: 8) {
+-                            Slider(value: dtrSliderBinding, in: 10.0...25.0)
+-                            
+-                            TextField("15.0", text: $manager.targetDTR)
+-                                .textFieldStyle(.roundedBorder)
+-                                .frame(width: 60)
+-                                .multilineTextAlignment(.center)
+-                        }
+-                        
+-                        // 아그트론 그라데이션 바
+-                        let agtronColors = [
+-                            Color(hex: "#CE8101"), // 95
+-                            Color(hex: "#C47C04"), // 85
+-                            Color(hex: "#B46B0C"), // 75
+-                            Color(hex: "#995515"), // 65
+-                            Color(hex: "#8B4B1B"), // 55
+-                            Color(hex: "#7A4719"), // 45
+-                            Color(hex: "#673F1C"), // 35
+-                            Color(hex: "#532C1B")  // 25
+-                        ]
+-                        
+-                        VStack(spacing: 4) {
+-                            RoundedRectangle(cornerRadius: 5)
+-                                .fill(LinearGradient(colors: agtronColors, startPoint: .leading, endPoint: .trailing))
+-                                .frame(height: 20)
+-                            
+-                            GeometryReader { geo in
+-                                let dtrVal = Double(manager.targetDTR) ?? 15.0
+-                                let clampedDtr = max(10.0, min(25.0, dtrVal))
+-                                let percent = (clampedDtr - 10.0) / 15.0
+-                                let indicatorWidth: CGFloat = 8.0
+-                                let safeWidth = geo.size.width - indicatorWidth
+-                                let indicatorX = (safeWidth * CGFloat(percent)) + (indicatorWidth / 2)
+-                                
+-                                ZStack(alignment: .topLeading) {
+-                                    Image(systemName: "triangle.fill")
+-                                        .font(.system(size: 8))
+-                                        .foregroundColor(.appAccent)
+-                                        .position(x: indicatorX, y: 4)
+-                                    
+-                                    Text("Agtron: #\(currentAgtronValue)")
+-                                        .font(.system(size: 10, weight: .bold))
+-                                        .foregroundColor(.appAccent)
+-                                        .position(x: indicatorX, y: 16)
+-                                }
+-                            }
+-                            .frame(height: 26)
+-                        }
+-                        .padding(.top, 4)
+-                        
+-                        // 1행 3열 Agtron 상세 정보 테이블
+-                        HStack(spacing: 0) {
+-                            let detail = currentAgtronDetail
+-                            
+-                            VStack(spacing: 2) {
+-                                Text("수치 범위")
+-                                    .font(.system(size: 9))
+-                                    .foregroundColor(.textTertiary)
+-                                Text(detail.range)
+-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+-                                    .foregroundColor(.textPrimary)
+-                            }
+-                            .frame(maxWidth: .infinity)
+-                            
+-                            Divider().frame(height: 20)
+-                            
+-                            VStack(spacing: 2) {
+-                                Text("일반 분류")
+-                                    .font(.system(size: 9))
+-                                    .foregroundColor(.textTertiary)
+-                                Text(detail.common)
+-                                    .font(.system(size: 11, weight: .bold))
+-                                    .foregroundColor(.textPrimary)
+-                            }
+-                            .frame(maxWidth: .infinity)
+-                            
+-                            Divider().frame(height: 20)
+-                            
+-                            VStack(spacing: 2) {
+-                                Text("SCA 분류")
+-                                    .font(.system(size: 9))
+-                                    .foregroundColor(.textTertiary)
+-                                Text(detail.sca)
+-                                    .font(.system(size: 11, weight: .bold))
+-                                    .foregroundColor(.textPrimary)
+-                            }
+-                            .frame(maxWidth: .infinity)
+-                        }
+-                        .padding(.vertical, 6)
+-                        .background(Color.appSurface2)
+-                        .cornerRadius(6)
+-                        .overlay(
+-                            RoundedRectangle(cornerRadius: 6)
+-                                .stroke(Color.appBorder, lineWidth: 1)
+-                        )
+-                        .padding(.top, 6)
+-                    }
+-                    
+-                    VStack(alignment: .leading, spacing: 6) {
+-                        HStack {
+-                            Text("수동 열량 조절 (0~12)")
+-                                .font(.system(size: 11, weight: .medium))
+-                                .foregroundColor(.textSecondary)
+-                            Spacer()
+-                            if pendingHeat == manager.currentHeat {
+-                                Text("\(manager.currentHeat)")
+-                                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+-                                    .foregroundColor(.textSecondary)
+-                            } else {
+-                                Text("\(manager.currentHeat) → \(pendingHeat)")
+-                                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+-                                    .foregroundColor(.appWarning)
+-                            }
+-                        }
+-                        
+-                        HStack {
+-                            Slider(value: Binding(
+-                                get: { Double(pendingHeat) },
+-                                set: { pendingHeat = Int($0) }
+-                            ), in: 0...12, step: 1.0)
+-                            
+-                            Stepper("", value: $pendingHeat, in: 0...12)
+-                                .labelsHidden()
+-                        }
+-                        
+-                        Button {
+-                            manager.adjustHeat(to: pendingHeat)
+-                        } label: {
+-                            Text("열량 변경 확인")
+-                                .font(.system(size: 11, weight: .bold))
+-                                .frame(maxWidth: .infinity)
+-                                .padding(.vertical, 4)
+-                        }
+-                        .buttonStyle(.borderedProminent)
+-                        .tint(pendingHeat == manager.currentHeat ? Color.gray : Color.appAccent)
+-                        .disabled(pendingHeat == manager.currentHeat)
+-                    }
+-                    .padding(8)
+-                    .background(Color.appSurface)
+-                    .cornerRadius(8)
+-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
++            VStack(spacing: 8) {
++                Text("로스팅 세션 설정")
++                    .font(.system(size: 11, weight: .bold))
++                    .foregroundColor(.textSecondary)
++                    .frame(maxWidth: .infinity, alignment: .leading)
++                
++                VStack(alignment: .leading, spacing: 3) {
++                    Text("커피 품종")
++                        .font(.system(size: 11, weight: .medium))
++                        .foregroundColor(.textSecondary)
++                    TextField("예: 에티오피아 예가체프", text: $manager.beanName)
++                        .textFieldStyle(.roundedBorder)
++                }
++                
++                HStack(spacing: 12) {
++                    VStack(alignment: .leading, spacing: 3) {
++                        Text("투입 용량 (g)")
++                            .font(.system(size: 11, weight: .medium))
++                            .foregroundColor(.textSecondary)
++                        TextField("200", text: $manager.beanWeight)
++                            .textFieldStyle(.roundedBorder)
++                    }
++                    
++                    VStack(alignment: .leading, spacing: 3) {
++                        Text("예열 온도 (°C)")
++                            .font(.system(size: 11, weight: .medium))
++                            .foregroundColor(.textSecondary)
++                        TextField("200", text: $manager.preheatTemp)
++                            .textFieldStyle(.roundedBorder)
++                    }
++                }
++                
++                VStack(alignment: .leading, spacing: 3) {
++                    Text("목표 DTR (%)")
++                        .font(.system(size: 11, weight: .medium))
++                        .foregroundColor(.textSecondary)
++                    HStack(spacing: 8) {
++                        Slider(value: dtrSliderBinding, in: 10.0...25.0)
++                        
++                        TextField("15.0", text: $manager.targetDTR)
++                            .textFieldStyle(.roundedBorder)
++                            .frame(width: 60)
++                            .multilineTextAlignment(.center)
++                    }
++                    
++                    // 아그트론 그라데이션 바
++                    let agtronColors = [
++                        Color(hex: "#CE8101"), // 95
++                        Color(hex: "#C47C04"), // 85
++                        Color(hex: "#B46B0C"), // 75
++                        Color(hex: "#995515"), // 65
++                        Color(hex: "#8B4B1B"), // 55
++                        Color(hex: "#7A4719"), // 45
++                        Color(hex: "#673F1C"), // 35
++                        Color(hex: "#532C1B")  // 25
++                    ]
++                    
++                    VStack(spacing: 4) {
++                        RoundedRectangle(cornerRadius: 5)
++                            .fill(LinearGradient(colors: agtronColors, startPoint: .leading, endPoint: .trailing))
++                            .frame(height: 14)
++                        
++                        GeometryReader { geo in
++                            let dtrVal = Double(manager.targetDTR) ?? 15.0
++                            let clampedDtr = max(10.0, min(25.0, dtrVal))
++                            let percent = (clampedDtr - 10.0) / 15.0
++                            let indicatorWidth: CGFloat = 8.0
++                            let safeWidth = geo.size.width - indicatorWidth
++                            let indicatorX = (safeWidth * CGFloat(percent)) + (indicatorWidth / 2)
++                            
++                            ZStack(alignment: .topLeading) {
++                                Image(systemName: "triangle.fill")
++                                    .font(.system(size: 8))
++                                    .foregroundColor(.appAccent)
++                                    .position(x: indicatorX, y: 4)
++                                
++                                Text("Agtron: #\(currentAgtronValue)")
++                                    .font(.system(size: 10, weight: .bold))
++                                    .foregroundColor(.appAccent)
++                                    .position(x: indicatorX, y: 16)
++                            }
++                        }
++                        .frame(height: 20)
++                    }
++                    .padding(.top, 2)
++                    
++                    // 1행 3열 Agtron 상세 정보 테이블
++                    HStack(spacing: 0) {
++                        let detail = currentAgtronDetail
++                        
++                        VStack(spacing: 2) {
++                            Text("수치 범위")
++                                .font(.system(size: 9))
++                                .foregroundColor(.textSecondary)
++                            Text(detail.range)
++                                .font(.system(size: 10, weight: .bold, design: .monospaced))
++                                .foregroundColor(.textPrimary)
++                        }
++                        .frame(maxWidth: .infinity)
++                        
++                        Divider().frame(height: 18)
++                        
++                        VStack(spacing: 2) {
++                            Text("일반 분류")
++                                .font(.system(size: 9))
++                                .foregroundColor(.textSecondary)
++                            Text(detail.common)
++                                .font(.system(size: 10, weight: .bold))
++                                .foregroundColor(.textPrimary)
++                        }
++                        .frame(maxWidth: .infinity)
++                        
++                        Divider().frame(height: 18)
++                        
++                        VStack(spacing: 2) {

@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>보카보아 (BocaBoa)</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js 최신 라이브러리 연동 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  
+  <div class="custom-titlebar">
+    <div class="titlebar-connection-bar">
+      <div class="status-info">
+        <span class="status-indicator disconnected" id="connection-status"></span>
+        <span class="status-text" id="device-status-text">보카보카 블루투스 장치 연결 대기 중 ('연결하기' 버튼 누르세요)</span>
+        <button class="btn-pill btn-connect-pill" id="btn-connect">연결하기</button>
+        <button class="btn-pill btn-outline-pill" id="btn-scan-devices">블루투스 장치 검색</button>
+        <button class="btn-pill btn-outline-pill" id="btn-mock-roast">모의 로스팅</button>
+      </div>
+      <div class="header-buttons" style="display: flex; align-items: center; gap: 12px;">
+        <div class="voice-control-group">
+          <label class="voice-toggle-label">
+            <input type="checkbox" id="chk-voice-enable" checked>
+            <span>음성 알림</span>
+          </label>
+          <div class="volume-control">
+            <span class="volume-icon" style="display: inline-flex; align-items: center; color: var(--text-secondary);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            </span>
+            <input type="range" id="rng-voice-volume" min="0" max="10" value="3" class="volume-slider">
+            <span id="lbl-voice-volume" class="volume-val">3</span>
+          </div>
+        </div>
+        <button class="btn-pill btn-outline-pill" id="btn-github-settings-open" style="display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.5 11.5 0 0 1 3-.405c1.02.005 2.045.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+          <span>GitHub 설정</span>
+        </button>
+        <button class="btn-pill btn-danger-pill" id="btn-force-stop">종료</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    
+    <!-- 1. 좌측 사이드바 (스크롤 고정) -->
+    <aside class="sidebar">
+      
+      <!-- 원래 사용하던 로고 이미지 및 앱 이름 헤더 -->
+      <div class="brand-header">
+        <img src="AppIcon.png" alt="App Icon" class="app-icon">
+        <div class="brand-titles">
+          <img src="appname.png" alt="보카보아" class="brand-logo-img">
+          <span class="brand-subtitle">보카보카 250/500BT 커피 로스터 프로파일러</span>
+        </div>
+      </div>
+      
+      <!-- 세션 설정 입력 폼 -->
+      <div class="sidebar-form">
+        
+        <!-- 커피 품종 -->
+        <div class="form-group">
+          <label>커피 품종</label>
+          <input type="text" id="input-bean-name" list="datalist-bean-names" placeholder="예: Ethiopia Yirgacheffe G1">
+          <datalist id="datalist-bean-names"></datalist>
+        </div>
+        
+        <!-- 가공 방식 -->
+        <div class="form-group">
+          <label>가공 방식</label>
+          <select id="select-processing">
+            <option value="washed">워시드 (Washed)</option>
+            <option value="natural">내추럴 (Natural)</option>
+            <option value="honey">펄프드 내추럴/허니</option>
+            <option value="decaf">디카페인</option>
+          </select>
+        </div>
+        
+        <!-- 로스팅 목적 -->
+        <div class="form-group">
+          <label>로스팅 목적</label>
+          <select id="select-purpose">
+            <option value="hand-drip">핸드드립</option>
+            <option value="espresso">에스프레소</option>
+          </select>
+        </div>
+
+        <!-- 투입 중량 & 예열 온도 (가로 2분할 꽉 찬 구조) -->
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label>투입 중량 (g)</label>
+            <input type="number" id="input-bean-weight" value="160">
+          </div>
+          <div class="form-group half-width">
+            <div class="label-header">
+              <label>예열 온도 (°C)</label>
+              <span class="recommend-badge" id="recommend-temp">권장 220°C</span>
+            </div>
+            <input type="number" id="input-preheat-temp" value="220">
+          </div>
+        </div>
+
+        <!-- 목표 DTR % 및 권장 표시 -->
+        <div class="form-group">
+          <div class="label-header">
+            <label>목표 DTR %</label>
+            <span class="recommend-badge highlight" id="recommend-dtr">권장 14-18%</span>
+          </div>
+          <div class="slider-wrapper">
+            <input type="range" id="range-dtr" min="10.0" max="25.0" value="15.0" step="0.1">
+            <input type="number" class="dtr-value" id="val-target-dtr" min="10.0" max="25.0" step="0.1" value="15.0">
+          </div>
+        </div>
+
+        <!-- Agtron 색상 시각화 및 단계 표시기 -->
+        <div class="agtron-container">
+          <div class="agtron-header">
+            <span class="agtron-label" id="agtron-value-text">Agtron: #71</span>
+          </div>
+          <!-- 색상 그라디언트 띠 -->
+          <div class="agtron-band-wrapper">
+            <div class="agtron-band"></div>
+            <div class="agtron-pointer" id="agtron-pointer">▲</div>
+          </div>
+          <!-- 3열 매칭 상자 -->
+          <div class="agtron-grid">
+            <div class="agtron-grid-item">
+              <span class="g-lbl">수치 범위</span>
+              <span class="g-val" id="agtron-range-val">79-65</span>
+            </div>
+            <div class="agtron-grid-item">
+              <span class="g-lbl">일반 분류</span>
+              <span class="g-val" id="agtron-common-val">Light Medium</span>
+            </div>
+            <div class="agtron-grid-item">
+              <span class="g-lbl">SCA 분류</span>
+              <span class="g-val" id="agtron-sca-val">High</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 수동 열량 조절 (0-12) -->
+        <div class="form-group heat-slider-group">
+          <div class="label-header">
+            <label>수동 열량 조절 (0-12)</label>
+          </div>
+          <div class="heat-slider-control">
+            <div class="heat-val-display" id="pending-heat-val">12</div>
+            <input type="range" id="range-heat" min="0" max="12" value="12" step="1">
+            <div class="shortcut-keys-column">
+              <div class="key-box" id="btn-heat-up" title="열량 올리기 (위 방향키 또는 =)">
+                <svg class="key-arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+              </div>
+              <div class="key-box" id="btn-heat-down" title="열량 내리기 (아래 방향키 또는 -)">
+                <svg class="key-arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <button class="btn-confirm-heat" id="btn-confirm-heat" title="열량 변경 확인 (Enter)">
+              <svg class="key-enter-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+              <span class="key-enter-label">Enter</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 로스팅 조작 메인 버튼 그룹 -->
+        <div class="roast-actions-group">
+          <div class="action-row">
+            <button class="btn-roast btn-preheat" id="btn-preheat">
+              <span class="lbl">예열 시작</span>
+              <span class="key">R</span>
+            </button>
+            <button class="btn-roast btn-charge disabled" id="btn-charge">
+              <span class="lbl">생두 투입</span>
+              <span class="key" id="key-charge-hint">S</span>
+            </button>
+          </div>
+          <div class="action-row">
+            <button class="btn-roast btn-pop1 disabled" id="btn-pop1">
+              <span class="lbl">1차 팝</span>
+              <span class="key">1</span>
+            </button>
+            <button class="btn-roast btn-pop2 disabled" id="btn-pop2">
+              <span class="lbl">2차 팝</span>
+              <span class="key">2</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 예상 종료시각 요약 알림 -->
+        <div class="summary-time-box">
+          <div class="time-header">
+            <span class="eta-title-text">예상 종료시각</span>
+            <span class="time-val" id="lbl-eta-time">--:--</span>
+          </div>
+          <div class="time-sub">
+            <span id="lbl-eta-dtr">목표 DTR 15.0%</span>
+            <span>1차 팝 이후 계산됨</span>
+          </div>
+        </div>
+
+        <!-- 종료 및 배출 대형 버튼 -->
+        <button class="btn-finish-large disabled" id="btn-finish">
+          <span>종료 및 배출</span>
+          <span class="finish-key" id="key-finish-hint">E</span>
+        </button>
+
+        <!-- 다시 시작 / 로스팅 취소 버튼 복구 (사이드바 하단 배치) -->
+        <div class="bottom-utility-row">
+          <button class="btn-utility reset disabled" id="btn-reset-session">
+            <span>다시 시작</span>
+          </button>
+          <button class="btn-utility cancel disabled" id="btn-cancel-roast">
+            <span>로스팅 취소</span>
+          </button>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- 2. 우측 메인 영역 -->
+    <main class="main-content">
+      
+
+      <!-- 4가지 지표 카드 (이모지 걷어내고 정갈한 인라인 SVG 아이콘 탑재) -->
+      <header class="dashboard-header">
+        <div class="metric-card temp-metric">
+          <div class="metric-icon-wrapper">
+            <!-- 온도계 SVG -->
+            <svg class="m-svg" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+          </div>
+          <div class="metric-body">
+            <span class="metric-label">온도(Temperature)</span>
+            <span class="metric-value" id="metric-temp">--.-<span class="unit">°C</span></span>
+          </div>
+        </div>
+        
+        <div class="metric-card time-metric">
+          <div class="metric-icon-wrapper">
+            <!-- 예열 시계 SVG -->
+            <svg class="m-svg" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="metric-body">
+            <span class="metric-label">예열 시간(Preheat Time)</span>
+            <span class="metric-value" id="metric-preheat-time">00:00</span>
+          </div>
+        </div>
+        
+        <div class="metric-card time-metric">
+          <div class="metric-icon-wrapper">
+            <!-- 로스팅 시계 SVG -->
+            <svg class="m-svg" viewBox="0 0 24 24" fill="none" stroke="#3182ce" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+          </div>
+          <div class="metric-body">
+            <span class="metric-label">로스팅 시간(Roast Time)</span>
+            <span class="metric-value" id="metric-roast-time">00:00</span>
+          </div>
+        </div>
+        
+        <div class="metric-card ror-metric">
+          <div class="metric-icon-wrapper">
+            <!-- RoR 차트선 SVG -->
+            <svg class="m-svg" viewBox="0 0 24 24" fill="none" stroke="#38a169" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div class="metric-body">
+            <span class="metric-label">RoR (Rate of Rise)</span>
+            <span class="metric-value" id="metric-ror">+0.0<span class="unit">°C/min</span></span>
+          </div>
+        </div>
+        
+        <div class="metric-card dtr-metric">
+          <div class="metric-icon-wrapper">
+            <!-- DTR 퍼센트/도넛 차트 SVG -->
+            <svg class="m-svg" viewBox="0 0 24 24" fill="none" stroke="#718096" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          </div>
+          <div class="metric-body">
+            <span class="metric-label">DTR (Development Time Ratio)</span>
+            <span class="metric-value" id="metric-dtr">0.0<span class="unit">%</span></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- 차트 속성 보정 패널 -->
+      <div class="chart-settings-bar">
+        <div class="state-badge">
+          <span>진행 상태:</span>
+          <span class="state-val" id="lbl-roast-state">대기</span>
+          <div class="mock-speed-group" id="mock-speed-group" style="display: none; align-items: center; gap: 4px; margin-left: 12px; background: rgba(0, 0, 0, 0.05); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.08);">
+            <span style="font-size: 11px; color: #4a5568; font-weight: bold;">배속:</span>
+            <select id="sel-mock-speed" style="background: transparent; border: none; color: #2d3748; font-size: 11px; font-weight: bold; cursor: pointer; outline: none;">
+              <option value="1">1x (보통)</option>
+              <option value="2">2x</option>
+              <option value="4">4x</option>
+              <option value="8">8x</option>
+              <option value="16">16x</option>
+              <option value="30">30x</option>
+              <option value="60">60x (초고속)</option>
+            </select>
+          </div>
+          <button id="btn-mock-pause" class="btn-pill" style="display: none; margin-left: 8px; background: #edf2f7; border: 1px solid #cbd5e0; color: #4a5568; padding: 2px 8px; font-size: 11px; font-weight: bold; border-radius: 6px; cursor: pointer; outline: none; transition: all 0.2s;">
+            일시정지
+          </button>
+        </div>
+        <div class="filter-controls">
+          <span class="filter-lbl">RoR 설정</span>
+          <div class="filter-slider">
+            <label>측정 시간</label>
+            <input type="range" id="range-window" min="5" max="60" value="30" step="1">
+            <span class="filter-val" id="val-window">30초</span>
+          </div>
+          <div class="filter-slider">
+            <label>필터 강도</label>
+            <input type="range" id="range-filter" min="0" max="95" value="95" step="1">
+            <span class="filter-val" id="val-filter">95%</span>
+          </div>
+          <button class="btn-reset-icon" id="btn-reset-filters" title="보정 값 초기화">
+            <!-- 회전 화살표 SVG -->
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          </button>
+        </div>
+        <div class="filter-controls" style="margin-left: 12px;">
+          <span class="filter-lbl">보기 비율</span>
+          <div class="zoom-controls">
+            <button class="btn-zoom" id="btn-zoom-out" title="축소">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <span class="zoom-percent-badge" id="lbl-zoom-percent">100% (Fit)</span>
+            <button class="btn-zoom" id="btn-zoom-in" title="확대">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <button class="btn-zoom btn-zoom-fit" id="btn-zoom-fit" title="100% (Fit)">Fit</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 실시간 그래프 영역 -->
+      <section class="chart-section">
+        <div class="chart-container">
+          <canvas id="profiler-chart"></canvas>
+        </div>
+      </section>
+
+      <!-- 30초 단위 타임테이블 영역 -->
+      <section class="timetable-section">
+        <div class="timetable-container">
+          <div class="timetable-wrapper">
+            <!-- 첫 번째 줄 (0:00 ~ 6:00) -->
+            <table class="timetable-table" id="timetable-row-1">
+              <thead>
+                <tr>
+                  <th>시간</th>
+                  <th>00:00</th>
+                  <th>00:30</th>
+                  <th>01:00</th>
+                  <th>01:30</th>
+                  <th>02:00</th>
+                  <th>02:30</th>
+                  <th>03:00</th>
+                  <th>03:30</th>
+                  <th>04:00</th>
+                  <th>04:30</th>
+                  <th>05:00</th>
+                  <th>05:30</th>
+                  <th>06:00</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>온도</td>
+                  <td id="tt-val-0">—</td>
+                  <td id="tt-val-30">—</td>
+                  <td id="tt-val-60">—</td>
+                  <td id="tt-val-90">—</td>
+                  <td id="tt-val-120">—</td>
+                  <td id="tt-val-150">—</td>
+                  <td id="tt-val-180">—</td>
+                  <td id="tt-val-210">—</td>
+                  <td id="tt-val-240">—</td>
+                  <td id="tt-val-270">—</td>
+                  <td id="tt-val-300">—</td>
+                  <td id="tt-val-330">—</td>
+                  <td id="tt-val-360">—</td>
+                </tr>
+              </tbody>
+            </table>
+            <!-- 두 번째 줄 (6:30 ~ 12:30) -->
+            <table class="timetable-table" id="timetable-row-2">
+              <thead>
+                <tr>
+                  <th>시간</th>
+                  <th>06:30</th>
+                  <th>07:00</th>
+                  <th>07:30</th>
+                  <th>08:00</th>
+                  <th>08:30</th>
+                  <th>09:00</th>
+                  <th>09:30</th>
+                  <th>10:00</th>
+                  <th>10:30</th>
+                  <th>11:00</th>
+                  <th>11:30</th>
+                  <th>12:00</th>
+                  <th>12:30</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>온도</td>
+                  <td id="tt-val-390">—</td>
+                  <td id="tt-val-420">—</td>
+                  <td id="tt-val-450">—</td>
+                  <td id="tt-val-480">—</td>
+                  <td id="tt-val-510">—</td>
+                  <td id="tt-val-540">—</td>
+                  <td id="tt-val-570">—</td>
+                  <td id="tt-val-600">—</td>
+                  <td id="tt-val-630">—</td>
+                  <td id="tt-val-660">—</td>
+                  <td id="tt-val-690">—</td>
+                  <td id="tt-val-720">—</td>
+                  <td id="tt-val-750">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 하단 정보 영역: 이전 기록 목록 & 세션 실시간 로그 -->
+      <section class="bottom-tables-row">
+        <!-- 왼쪽: 이전 기록 목록 -->
+        <div class="table-container history-container">
+          <div class="table-header-title">
+            <span>이전 기록 목록</span>
+            <button class="btn-pill-import" id="btn-import">
+              <svg class="btn-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>가져오기</span>
+            </button>
+          </div>
+          <div class="session-list" id="session-list">
+            <!-- 동적 삽입 -->
+            <div class="empty-list">저장된 기록이 없습니다.</div>
+          </div>
+        </div>
+
+        <!-- 오른쪽: 세션 실시간 로그 -->
+        <div class="table-container log-container">
+          <div class="table-header-title">
+            <span>세션 실시간 로그</span>
+          </div>
+          <div class="log-panel">
+            <div class="log-grid-header">
+              <span>진행시간</span>
+              <span>로스팅시간</span>
+              <span>이벤트</span>
+              <span>온도</span>
+              <span>열량</span>
+              <span>설명</span>
+            </div>
+            <div class="log-body" id="log-list">
+              <div class="log-placeholder">진행 중인 로그가 없습니다. 예열 시작 버튼을 누르면 기록이 시작됩니다.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 카피라이트 푸터 -->
+      <footer class="main-footer">
+        <span>Copyright © 2026~ 크리에이터 요셉(creatorjoseph@kakao.com)</span>
+        <div class="footer-buttons">
+          <button class="btn-footer-icon" id="btn-support" title="개발자 후원">
+            <img src="spon.png" alt="Sponsor" class="f-img">
+          </button>
+        </div>
+      </footer>
+    </main>
+
+  </div>
+
+  <!-- ── 2.5 보카보카 블루투스 장치 선택 모달 (신설) ── -->
+  <div class="modal-overlay" id="device-select-modal">
+    <div class="donation-card" style="max-width: 460px;">
+      <div class="donation-header">
+        <h2>보카보카 장치 연결</h2>
+        <button class="modal-close" id="btn-close-device-select">&times;</button>
+      </div>
+      <div class="donation-body" style="padding: 16px 20px; align-items: stretch; width: 100%;">
+        <p class="donation-desc" style="margin-bottom: 12px; font-size: 12px; text-align: left; color: var(--text-secondary);">연결할 보카보카 로스터기를 선택해 주세요:</p>
+        <div id="device-select-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding: 2px; width: 100%;">
+          <!-- 동적으로 등록된 기기 목록이 채워짐 -->
+        </div>
+      </div>
+      <div class="donation-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-top: 1px solid var(--border-color); background-color: #f7fafc; width: 100%; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+        <button class="btn btn-secondary btn-pill" id="btn-open-scanner-from-select" style="font-size: 11px; padding: 6px 12px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary);">새 장치 검색/등록</button>
+        <button class="btn btn-secondary btn-pill" id="btn-close-device-select-confirm" style="font-size: 11px; padding: 6px 16px;">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2.6 모의 로스팅 세션 기록 선택 모달 (신설) ── -->
+  <div class="modal-overlay" id="mock-session-select-modal">
+    <div class="donation-card" style="max-width: 460px;">
+      <div class="donation-header">
+        <h2>모의 로스팅 기록 선택</h2>
+        <button class="modal-close" id="btn-close-mock-select">&times;</button>
+      </div>
+      <div class="donation-body" style="padding: 16px 20px; align-items: stretch; width: 100%;">
+        <p class="donation-desc" style="margin-bottom: 12px; font-size: 12px; text-align: left; color: var(--text-secondary);">모의 로스팅 데모의 바탕이 될 이전 기록을 선택해 주세요:</p>
+        <div id="mock-session-select-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding: 2px; width: 100%;">
+          <!-- 동적으로 로스팅 기록 목록이 채워짐 -->
+        </div>
+      </div>
+      <div class="donation-footer" style="display: flex; justify-content: flex-end; align-items: center; padding: 12px 20px; border-top: 1px solid var(--border-color); background-color: #f7fafc; width: 100%; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+        <button class="btn btn-secondary btn-pill" id="btn-close-mock-select-confirm" style="font-size: 11px; padding: 6px 16px;">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2.7 모의 로스팅 시작 컨펌 모달 (신설) ── -->
+  <div class="modal-overlay" id="mock-start-modal">
+    <div class="donation-card" style="max-width: 460px;">
+      <div class="donation-header">
+        <h2>모의 로스팅 시작</h2>
+        <button class="modal-close" id="btn-close-mock-start">&times;</button>
+      </div>
+      <div class="donation-body" style="padding: 16px 20px; align-items: stretch; width: 100%;">
+        <div class="report-info-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; width: 100%;">
+          <div class="info-item" style="display: flex; flex-direction: column; gap: 4px; background: #f7fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); text-align: left;">
+            <span class="info-label" style="font-size: 11px; color: var(--text-tertiary);">원두명</span>
+            <span class="info-value" id="mock-start-bean-name" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">—</span>
+          </div>
+          <div class="info-item" style="display: flex; flex-direction: column; gap: 4px; background: #f7fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); text-align: left;">
+            <span class="info-label" style="font-size: 11px; color: var(--text-tertiary);">생두 투입량</span>
+            <span class="info-value" id="mock-start-bean-weight" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">—</span>
+          </div>
+          <div class="info-item" style="display: flex; flex-direction: column; gap: 4px; background: #f7fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); text-align: left;">
+            <span class="info-label" style="font-size: 11px; color: var(--text-tertiary);">목표 예열 온도</span>
+            <span class="info-value" id="mock-start-preheat-temp" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">—</span>
+          </div>
+          <div class="info-item" style="display: flex; flex-direction: column; gap: 4px; background: #f7fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); text-align: left;">
+            <span class="info-label" style="font-size: 11px; color: var(--text-tertiary);">총 로스팅 시간</span>
+            <span class="info-value" id="mock-start-duration" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">—</span>
+          </div>
+        </div>
+        <p class="donation-desc" style="font-size: 12px; text-align: left; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+          선택한 기록에 따라 예열부터 로스팅 종료(배출)까지 전체 과정을 시뮬레이션으로 자동 재현합니다. 시작하시겠습니까?
+        </p>
+      </div>
+      <div class="donation-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border-color); background-color: #f7fafc; width: 100%; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+        <button class="btn btn-secondary btn-pill" id="btn-mock-start-cancel" style="font-size: 11px; padding: 6px 16px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary);">취소</button>
+        <button class="btn btn-primary btn-pill" id="btn-mock-start-execute" style="font-size: 11px; padding: 6px 20px; background-color: #3182ce; color: white; border: none;">모의 로스팅 시작</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3. 개발자 후원 안내 모달 (신설) ── -->
+  <div class="modal-overlay" id="donation-modal">
+    <div class="donation-card">
+      <div class="donation-header">
+        <h2>개발자 후원 안내</h2>
+        <button class="modal-close" id="btn-close-donation">&times;</button>
+      </div>
+      <div class="donation-body">
+        <p class="donation-desc">보카보아 앱이 도움이 되셨다면 개발자에게 따뜻한 커피 한 잔만 사 주세요.<br>후원금은 앱의 유지보수 및 기능 개선에 전액 사용됩니다.</p>
+        <div class="donation-methods">
+          <div class="method-box">
+            <span class="method-title">카카오뱅크</span>
+            <img src="kakaobank.png" alt="카카오뱅크" class="qr-image">
+          </div>
+          <div class="method-box">
+            <span class="method-title">PayPal</span>
+            <img src="paypal.png" alt="PayPal" class="qr-image">
+          </div>
+        </div>
+      </div>
+      <div class="donation-footer">
+        <button class="btn btn-secondary" id="btn-close-donation-confirm">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. 로스팅 완료 상세 리포트 모달 ── -->
+  <div class="modal-overlay" id="report-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-title" style="display: flex; align-items: center; gap: 8px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"/><path d="M12 2a6 6 0 0 1 6 6v1H6V8a6 6 0 0 1 6-6z"/></svg>
+            <span>로스팅 완료!</span>
+          </h2>
+          <span class="modal-subtitle" id="modal-date">2026.07.02 12:00</span>
+        </div>
+        <button class="modal-close" id="btn-close-modal">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="modal-info-row" id="modal-info-row"></div>
+
+        <div class="modal-metrics-grid">
+          <div class="modal-metric">
+            <span class="lbl">실제 DTR</span>
+            <span class="val" id="modal-metric-dtr">—</span>
+          </div>
+          <div class="modal-metric">
+            <span class="lbl">총 로스팅</span>
+            <span class="val" id="modal-metric-total">—</span>
+          </div>
+          <div class="modal-metric">
+            <span class="lbl">Develop Time</span>
+            <span class="val" id="modal-metric-dev">—</span>
+          </div>
+          <div class="modal-metric">
+            <span class="lbl">배출 온도</span>
+            <span class="val" id="modal-metric-finish">—</span>
+          </div>
+        </div>
+
+        <div class="modal-chart-wrapper">
+          <canvas id="modal-analysis-chart"></canvas>
+        </div>
+
+        <!-- 상세 리포트 내 타임테이블 영역 -->
+        <div class="modal-timetable-section" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; margin-top: 4px; margin-bottom: 4px;">
+          <div class="timetable-wrapper">
+            <!-- 첫 번째 줄 (0:00 ~ 6:00) -->
+            <table class="timetable-table" id="modal-timetable-row-1">
+              <thead>
+                <tr>
+                  <th>시간</th>
+                  <th>00:00</th>
+                  <th>00:30</th>
+                  <th>01:00</th>
+                  <th>01:30</th>
+                  <th>02:00</th>
+                  <th>02:30</th>
+                  <th>03:00</th>
+                  <th>03:30</th>
+                  <th>04:00</th>
+                  <th>04:30</th>
+                  <th>05:00</th>
+                  <th>05:30</th>
+                  <th>06:00</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>온도</td>
+                  <td id="modal-tt-val-0">—</td>
+                  <td id="modal-tt-val-30">—</td>
+                  <td id="modal-tt-val-60">—</td>
+                  <td id="modal-tt-val-90">—</td>
+                  <td id="modal-tt-val-120">—</td>
+                  <td id="modal-tt-val-150">—</td>
+                  <td id="modal-tt-val-180">—</td>
+                  <td id="modal-tt-val-210">—</td>
+                  <td id="modal-tt-val-240">—</td>
+                  <td id="modal-tt-val-270">—</td>
+                  <td id="modal-tt-val-300">—</td>
+                  <td id="modal-tt-val-330">—</td>
+                  <td id="modal-tt-val-360">—</td>
+                </tr>
+              </tbody>
+            </table>
+            <!-- 두 번째 줄 (06:30 ~ 12:30) -->
+            <table class="timetable-table" id="modal-timetable-row-2">
+              <thead>
+                <tr>
+                  <th>시간</th>
+                  <th>06:30</th>
+                  <th>07:00</th>
+                  <th>07:30</th>
+                  <th>08:00</th>
+                  <th>08:30</th>
+                  <th>09:00</th>
+                  <th>09:30</th>
+                  <th>10:00</th>
+                  <th>10:30</th>
+                  <th>11:00</th>
+                  <th>11:30</th>
+                  <th>12:00</th>
+                  <th>12:30</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>온도</td>
+                  <td id="modal-tt-val-390">—</td>
+                  <td id="modal-tt-val-420">—</td>
+                  <td id="modal-tt-val-450">—</td>
+                  <td id="modal-tt-val-480">—</td>
+                  <td id="modal-tt-val-510">—</td>
+                  <td id="modal-tt-val-540">—</td>
+                  <td id="modal-tt-val-570">—</td>
+                  <td id="modal-tt-val-600">—</td>
+                  <td id="modal-tt-val-630">—</td>
+                  <td id="modal-tt-val-660">—</td>
+                  <td id="modal-tt-val-690">—</td>
+                  <td id="modal-tt-val-720">—</td>
+                  <td id="modal-tt-val-750">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 메모 영역 -->
+        <div class="modal-memo-section">
+          <div class="memo-header">
+            <span class="memo-title-wrapper">
+              <svg class="inline-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px; height:12px; margin-right:4px; vertical-align:middle;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <span>로스팅 메모</span>
+            </span>
+            <span class="toast-message" id="memo-toast">
+              <svg class="inline-svg-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:10px; height:10px; margin-right:2px; vertical-align:middle;"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>저장 완료</span>
+            </span>
+            <button class="btn btn-secondary btn-save-memo" id="btn-save-memo">저장</button>
+          </div>
+          <textarea id="modal-memo-text" placeholder="로스팅 과정 중 느낀 점이나 커핑 노트를 작성하세요..."></textarea>
+        </div>
+
+        <!-- 이벤트 로그 리스트 -->
+        <div class="modal-event-table">
+          <div class="table-header-grid">
+            <span>진행시간</span>
+            <span>로스팅시간</span>
+            <span>이벤트</span>
+            <span>온도</span>
+            <span>열량</span>
+            <span>설명</span>
+          </div>
+          <div class="table-body" id="modal-log-list"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-save-session">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>기록 저장 (자동경로)</span>
+        </button>
+        <button class="btn btn-github" id="btn-github-upload">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.5 11.5 0 0 1 3-.405c1.02.005 2.045.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+          <span>GitHub에 저장</span>
+        </button>
+        <button class="btn btn-outline" id="btn-export-session">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>기록 내보내기</span>
+        </button>
+        <button class="btn btn-outline" id="btn-set-guide">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+          <span>이 세션을 가이드로</span>
+        </button>
+        <button class="btn btn-secondary" id="btn-print-report">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          <span>인쇄</span>
+        </button>
+        <button class="btn btn-secondary" id="btn-save-pdf-report">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>PDF로 저장</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 가져오기 원본 선택 모달 ── -->
+  <div class="modal-overlay" id="import-source-modal">
+    <div class="modal-card" style="max-width:440px; width:90%; height:auto; max-height:90vh;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-color);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <h2>가져오기 원본 선택</h2>
+        </div>
+        <button class="modal-close" id="btn-close-import-source">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:24px; display:flex; flex-direction:column; gap:16px;">
+        <button class="btn-import-option" id="btn-import-local" style="display:flex; align-items:center; gap:16px; padding:16px; background:#f7fafc; border:1px solid var(--border-color); border-radius:10px; cursor:pointer; text-align:left; transition: all 0.2s ease;">
+          <div style="background:rgba(49, 130, 206, 0.1); color:#3182ce; padding:10px; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
+          </div>
+          <div style="flex:1;">
+            <h4 style="margin:0; font-size:14px; font-weight:600; color:var(--text-primary);">로컬 저장소</h4>
+            <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-secondary); line-height:1.4;">컴퓨터에 저장된 JSON 파일을 직접 선택하여 가져옵니다.</p>
+          </div>
+        </button>
+
+        <button class="btn-import-option" id="btn-import-github" style="display:flex; align-items:center; gap:16px; padding:16px; background:#f7fafc; border:1px solid var(--border-color); border-radius:10px; cursor:pointer; text-align:left; transition: all 0.2s ease;">
+          <div style="background:rgba(36, 41, 46, 0.1); color:#24292e; padding:10px; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.5 11.5 0 0 1 3-.405c1.02.005 2.045.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+          </div>
+          <div style="flex:1;">
+            <h4 style="margin:0; font-size:14px; font-weight:600; color:var(--text-primary);">GitHub 저장소</h4>
+            <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-secondary); line-height:1.4;">원격 GitHub 리포지토리의 기록 목록에서 선택하여 다운로드 및 로드합니다.</p>
+          </div>
+        </button>
+      </div>
+      <div class="modal-footer" style="justify-content:flex-end; padding: 12px 20px;">
+        <button class="btn btn-outline" id="btn-close-import-source-cancel">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GitHub 설정 모달 ── -->
+  <div class="modal-overlay" id="github-settings-modal">
+    <div class="modal-card" style="max-width:480px; width:90%; height:auto; max-height:90vh;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent-color);"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.5 11.5 0 0 1 3-.405c1.02.005 2.045.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+          <h2>GitHub 연동 설정</h2>
+        </div>
+        <button class="modal-close" id="btn-close-github-settings">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <!-- 저장소 구분 선택 -->
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:13px;font-weight:600;color:var(--text-primary);">저장소 유형</label>
+          <div style="display:flex;gap:16px;margin-top:6px;">
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:var(--text-secondary);white-space:nowrap;">
+              <input type="radio" name="github-repo-type" value="public" checked>
+              <span>공용 저장소</span>
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:var(--text-secondary);white-space:nowrap;">
+              <input type="radio" name="github-repo-type" value="private">
+              <span>개인 저장소</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 사용자 이름 (공용 저장소용 폴더 구분) -->
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:13px;font-weight:600;color:var(--text-primary);" id="lbl-github-user-name">사용자 이름</label>
+          <input type="text" id="input-github-user-name" placeholder="예: 홍길동 (공용 저장소 백업 시 필수 입력)" style="width:100%;margin-top:6px;font-size:13px;padding:8px;border-radius:6px;border:1px solid var(--border-color);">
+        </div>
+
+        <!-- 개인 저장소 상세 설정 -->
+        <div id="github-private-fields" style="display:none;flex-direction:column;gap:12px;margin-bottom:14px;padding:12px;background:#f7fafc;border:1px solid var(--border-color);border-radius:8px;">
+          <div class="form-group">
+            <label style="font-size:12px;font-weight:600;color:var(--text-primary);">GitHub 계정명 (Owner)</label>
+            <input type="text" id="input-github-private-owner" placeholder="예: creatorjosephkr" style="width:100%;margin-top:4px;font-size:13px;padding:6px;border-radius:4px;border:1px solid var(--border-color);">
+          </div>
+          <div class="form-group">
+            <label style="font-size:12px;font-weight:600;color:var(--text-primary);">저장소명 (Repository)</label>
+            <input type="text" id="input-github-private-repo" placeholder="예: bocaboa-profile" style="width:100%;margin-top:4px;font-size:13px;padding:6px;border-radius:4px;border:1px solid var(--border-color);">
+          </div>
+          <button class="btn btn-outline" id="btn-github-show-guide" style="width:100%;font-size:12px;padding:6px;margin-top:4px;">
+            개인 저장소 및 PAT 생성 방법 안내
+          </button>
+        </div>
+
+        <!-- PAT 토큰 -->
+        <div class="form-group" id="github-pat-group" style="margin-bottom:8px;">
+          <label style="font-size:13px;font-weight:600;color:var(--text-primary);">Personal Access Token (PAT)</label>
+          <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+            <input type="password" id="input-github-pat" placeholder="ghp_xxxxxxxxxxxx" style="flex:1;font-family:monospace;font-size:13px;padding:8px;border-radius:6px;border:1px solid var(--border-color);">
+            <button class="btn btn-outline" id="btn-toggle-pat-visibility" style="padding:6px 10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;" title="PAT 표시/숨기기">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="github-pat-status" style="margin-top:8px;font-size:12px;"></div>
+      </div>
+      <div class="modal-footer" style="padding: 12px 20px;">
+        <button class="btn btn-primary" id="btn-save-github-pat">저장</button>
+        <button class="btn btn-outline" id="btn-github-browse">GitHub 기록 불러오기</button>
+        <button class="btn btn-outline" id="btn-close-github-settings-cancel">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GitHub 개인 저장소 & PAT 생성 안내 모달 ── -->
+  <div class="modal-overlay" id="github-guide-modal">
+    <div class="modal-card" style="max-width:520px; width:90%; height:auto; max-height:85vh;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent-color);"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <h2>GitHub 개인 저장소 및 PAT 생성 안내</h2>
+        </div>
+        <button class="modal-close" id="btn-close-github-guide">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:20px; overflow-y:auto; font-size:13px; line-height:1.6; color:var(--text-secondary);">
+        <h4 style="margin:0 0 8px 0; color:var(--text-primary);">1. GitHub 계정 만들기 및 로그인</h4>
+        <p style="margin:0 0 16px 0;">GitHub 계정이 없다면 <a href="https://github.com" target="_blank" style="color:var(--accent-color); text-decoration:underline;">github.com</a>에서 무료로 가입 후 로그인해 주세요.</p>
+
+        <h4 style="margin:0 0 8px 0; color:var(--text-primary);">2. 새 저장소(Repository) 만들기</h4>
+        <p style="margin:0 0 4px 0;">로그인 후 우측 상단의 <strong>[+]</strong> ➔ <strong>New repository</strong>를 클릭합니다.</p>
+        <ul style="margin:0 0 16px 0; padding-left:20px;">
+          <li><strong>Repository name</strong>: 원하는 이름 입력 (예: <code>bocaboa-profile</code>)</li>
+          <li><strong>Public / Private</strong>: 비공개 보관을 원하시면 <strong>Private</strong>를 선택합니다.</li>
+          <li>맨 아래 <strong>Create repository</strong> 버튼을 누르면 빈 저장소가 생성됩니다.</li>
+        </ul>
+
+        <h4 style="margin:0 0 8px 0; color:var(--text-primary);">3. 개인 토큰(PAT) 발급하기</h4>
+        <p style="margin:0 0 4px 0;">우측 상단 프로필 이미지 클릭 ➔ <strong>Settings</strong> 선택 ➔ 왼쪽 맨 아래 <strong>Developer settings</strong> 선택 ➔ <strong>Personal access tokens</strong> ➔ <strong>Tokens (classic)</strong> 선택.</p>
+        <ul style="margin:0 0 16px 0; padding-left:20px;">
+          <li>우측 상단 <strong>Generate new token</strong> ➔ <strong>Generate new token (classic)</strong> 클릭.</li>
+          <li><strong>Note</strong>: 토큰 이름 입력 (예: <code>BocaBoa</code>)</li>
+          <li><strong>Expiration</strong>: 만료일 선택 (예: <code>No expiration</code> 또는 <code>90 days</code>)</li>
+          <li><strong>Select scopes</strong>: 저장소 읽기/쓰기를 위해 맨 위의 <strong>[ ] repo</strong> 체크박스에 체크합니다.</li>
+          <li>맨 아래 <strong>Generate token</strong>을 클릭하면 토큰 값(<code>ghp_...</code>)이 표시됩니다. 이 값을 복사하여 앱에 입력합니다. (창을 닫으면 다시 볼 수 없습니다.)</li>
+        </ul>
+      </div>
+      <div class="modal-footer" style="justify-content:flex-end; padding:12px 20px;">
+        <button class="btn btn-outline" id="btn-close-github-guide-cancel">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GitHub 기록 목록 모달 ── -->
+  <div class="modal-overlay" id="github-sessions-modal">
+    <div class="modal-card" style="max-width:680px; width:95%;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent-color);"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.418-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.5 11.5 0 0 1 3-.405c1.02.005 2.045.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/></svg>
+          <h2>GitHub 저장된 로스팅 기록</h2>
+        </div>
+        <button class="modal-close" id="btn-close-github-sessions">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <!-- 파일 목록 헤더 & 검색 영역 한 줄 배치 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:16px;">
+          <div id="github-sessions-status" style="font-size:13px; color:var(--text-secondary); font-weight:600; white-space:nowrap; flex-shrink:0;">불러오는 중...</div>
+          <div style="display:flex; gap:8px; align-items:center; flex:1; max-width:320px; justify-content:flex-end;">
+            <input type="text" id="github-search-input" placeholder="검색어 입력..." style="width:140px; font-size:12px; padding:6px 12px; border:1px solid var(--border-color); border-radius:20px; outline:none;">
+            <select id="github-search-target" style="font-size:12px; padding:6px 12px; border:1px solid var(--border-color); border-radius:20px; background:#ffffff; outline:none; cursor:pointer;">
+              <option value="bean" selected>원두 이름</option>
+              <option value="user">사용자 이름</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- 테이블 헤더 추가 -->
+        <div id="github-sessions-header" style="display: grid; grid-template-columns: 2.2fr 1fr 1.3fr 75px; gap: 12px; padding: 8px 14px; background: #edf2f7; border: 1px solid var(--border-color); border-radius: 6px; font-weight: 700; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+          <span>프로파일 이름</span>
+          <span>사용자 이름</span>
+          <span>생성일자</span>
+          <span style="text-align: center;">가져오기</span>
+        </div>
+        
+        <div id="github-sessions-list" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="btn-github-sessions-refresh">새로 고침</button>
+        <button class="btn btn-outline" id="btn-close-github-sessions-cancel">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4.5 그래프 확대 분석 모달 ── -->
+  <div class="modal-overlay" id="chart-zoom-modal">
+    <div class="modal-card" style="width: 95vw; height: 90vh; max-width: 1400px; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-color);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          <h2 id="zoom-modal-title">그래프 상세 확대 분석</h2>
+        </div>
+        <button class="modal-close" id="btn-close-zoom-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow: hidden; height: 100%;">
+        <div class="zoom-chart-container" style="position: relative; width: 100%; height: calc(90vh - 180px); background: #ffffff; border-radius: 8px; border: 1px solid var(--border-color); padding: 12px;">
+          <canvas id="zoom-analysis-chart"></canvas>
+        </div>
+        <div class="zoom-export-controls" style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+          <span style="font-size: 12px; color: var(--text-tertiary);">파일 형식 선택:</span>
+          <div class="btn-group" style="display: flex; gap: 6px;">
+            <button class="btn btn-outline" id="btn-export-png">
+              <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>PNG 저장</span>
+            </button>
+            <button class="btn btn-outline" id="btn-export-jpg">
+              <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>JPG 저장</span>
+            </button>
+            <button class="btn btn-outline" id="btn-export-pdf">
+              <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span>PDF 저장</span>
+            </button>
+            <button class="btn btn-primary" id="btn-zoom-print">
+              <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              <span>인쇄</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

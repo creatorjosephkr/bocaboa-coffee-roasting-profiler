@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>BluetoothSearch</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.bocaboa.ble-scanner</string>
+    <key>CFBundleName</key>
+    <string>BLE Scanner</string>
+    <key>CFBundleDisplayName</key>
+    <string>BLE Scanner</string>
+    <key>CFBundleVersion</key>
+    <string>5</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.5</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>MacOSX</string>
+    </array>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>이 앱은 주변의 BLE 기기를 검색하고 연결하기 위해 Bluetooth 접근 권한이 필요합니다.</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+    <key>NSSupportsAutomaticTermination</key>
+    <false/>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+</dict>
+</plist>

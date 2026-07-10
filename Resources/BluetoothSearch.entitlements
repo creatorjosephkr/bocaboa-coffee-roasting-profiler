@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Sandbox 비활성화: 개발용 빌드에서 BLE 접근을 위해 필요 -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+    <key>com.apple.security.device.bluetooth</key>
+    <true/>
+</dict>
+</plist>

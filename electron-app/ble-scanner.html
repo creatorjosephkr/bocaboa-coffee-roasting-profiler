@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLE Scanner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-primary:   #23232c;
+    --bg-panel:     #2c2c36;
+    --bg-card:      #363642;
+    --bg-input:     #1c1c24;
+    --bg-hover:     #424250;
+    --bg-selected:  #34446b;
+    --border:       #3e3e4e;
+    --text-primary: #f0f0f5;
+    --text-secondary: #a0a0ba;
+    --text-muted:   #6e6e88;
+    --accent-blue:  #4b8eff;
+    --accent-teal:  #00c9a7;
+    --accent-red:   #ff4d6a;
+    --accent-orange:#ff9f43;
+    --green:        #2ecc71;
+    --signal-good:  #2ecc71;
+    --signal-mid:   #f39c12;
+    --signal-bad:   #e74c3c;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── 타이틀바 ── */
+  .titlebar {
+    height: 44px; background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 16px 0 76px;
+    -webkit-app-region: drag;
+    flex-shrink: 0; gap: 12px;
+  }
+  .scanner-icon {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg,#3c4a6b,#232b3d);
+    border: 2px solid var(--accent-blue);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .titlebar h1 { font-size: 15px; font-weight: 700; }
+  .scan-subtitle { font-size: 11px; color: var(--text-secondary); }
+  .titlebar .spacer { flex: 1; }
+  .btn-scan-toggle {
+    -webkit-app-region: no-drag;
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 6px; border: none;
+    font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-scan-toggle.scanning { background: #3a0f18; color: var(--accent-red); border: 1.5px solid var(--accent-red); }
+  .btn-scan-toggle.scanning:hover { background: #5a1525; }
+  .btn-scan-toggle.idle { background: #0f2a1a; color: var(--accent-teal); border: 1.5px solid var(--accent-teal); }
+  .btn-scan-toggle.idle:hover { background: #1a3a28; }
+  .btn-scan-toggle .dot { width:8px; height:8px; border-radius:50%; background:currentColor; }
+  .btn-scan-toggle.scanning .dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+  /* ── 메인 레이아웃 ── */
+  .main-layout { flex:1; display:grid; grid-template-columns:360px 1fr; overflow:hidden; min-height:0; }
+
+  /* ── 왼쪽 패널 ── */
+  .left-panel { background:var(--bg-panel); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+  .search-area { padding:10px 12px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+  .search-input-wrap { position:relative; }
+  .search-input-wrap svg { position:absolute; left:9px; top:50%; transform:translateY(-50%); opacity:.4; pointer-events:none; }
+  .search-input {
+    width:100%; background:var(--bg-input); border:1px solid var(--border);
+    border-radius:8px; padding:7px 10px 7px 30px;
+    font-size:12px; color:var(--text-primary); outline:none; transition:border-color .15s;
+  }
+  .search-input:focus { border-color:var(--accent-blue); }
+  .search-input::placeholder { color:var(--text-muted); }
+  .uuid-filter-row {
+    display:flex; align-items:center; gap:6px;
+    background:var(--bg-input); border:1px solid var(--border);
+    border-radius:8px; padding:5px 10px;
+  }
+  .uuid-filter-row svg { opacity:.4; flex-shrink:0; }
+  .uuid-filter-input { flex:1; background:transparent; border:none; font-size:11px; color:var(--text-secondary); outline:none; }
+  .uuid-filter-input::placeholder { color:var(--text-muted); }
+  .filter-row { display:flex; align-items:center; gap:8px; padding:0 2px; flex-wrap:wrap; }
+  .toggle-wrap { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-secondary); cursor:pointer; user-select:none; }
+  .toggle { position:relative; width:28px; height:15px; background:#525266; border-radius:8px; flex-shrink:0; transition:background .2s; cursor:pointer; }
+  .toggle.on { background:var(--accent-blue); }
+  .toggle::after { content:''; position:absolute; top:2px; left:2px; width:11px; height:11px; border-radius:50%; background:white; transition:left .2s; }
+  .toggle.on::after { left:15px; }
+  .filter-row .spacer { flex:1; }
+  .sort-select { background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:3px 8px; font-size:11px; color:var(--text-secondary); outline:none; cursor:pointer; }
+
+  /* ── 기기 목록 ── */
+  .device-list { flex:1; overflow-y:auto; padding:4px 0; }
+  .device-list::-webkit-scrollbar { width:4px; }
+  .device-list::-webkit-scrollbar-thumb { background:#525266; border-radius:4px; }
+  .empty-list { text-align:center; padding:40px 20px; color:var(--text-muted); font-size:12px; line-height:1.8; }
+  .device-item {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px; cursor:pointer;
+    border-bottom:1px solid rgba(255,255,255,.03);
+    transition:background .1s;
+  }
+  .device-item:hover { background:var(--bg-hover); }
+  .device-item.selected { background:var(--bg-selected); border-left:2px solid var(--accent-blue); padding-left:12px; }
+  .device-icon {
+    width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    background:linear-gradient(135deg,#3c4a6b,#232b3d); border:1.5px solid var(--border);
+    color:var(--accent-blue);
+  }
+  .device-icon.connected { border-color:var(--accent-teal); background:linear-gradient(135deg,#14423b,#081f1c); color:var(--accent-teal); }
+  .device-info { flex:1; min-width:0; }
+  .device-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .device-uuid { font-size:10px; color:var(--text-muted); margin-top:2px; }
+  .connected-badge { display:inline-block; background:rgba(0,201,167,.15); color:var(--accent-teal); border:1px solid rgba(0,201,167,.3); font-size:9px; font-weight:700; padding:1px 5px; border-radius:4px; margin-top:2px; }
+  .signal-col { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+  .signal-bars { display:flex; align-items:flex-end; gap:2px; height:14px; }
+  .signal-bars .bar { width:3px; border-radius:1px; background:var(--border); }
+  .signal-bars .bar.active { background:currentColor; }
+  .signal-dbm { font-size:10px; color:var(--text-muted); }
+
+  /* ── 상태바 ── */
+  .statusbar { height:26px; background:var(--bg-primary); border-top:1px solid var(--border); display:flex; align-items:center; padding:0 14px; gap:10px; font-size:10px; color:var(--text-muted); }
+  .bt-dot { width:6px; height:6px; border-radius:50%; background:#444466; flex-shrink:0; }
+
+  /* ── 오른쪽 패널 ── */
+  .right-panel { background:var(--bg-primary); display:flex; flex-direction:column; overflow:hidden; }
+  .empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--text-muted); }
+  .empty-state svg { opacity:.3; }
+  .empty-state p { font-size:13px; }
+
+  /* ── 기기 상세 ── */
+  .device-detail { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+  .device-detail::-webkit-scrollbar { width:4px; }
+  .device-detail::-webkit-scrollbar-thumb { background:#525266; border-radius:4px; }
+  .detail-header { background:var(--bg-panel); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; align-items:center; gap:14px; flex-shrink:0; }
+  .detail-device-icon { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#3c4a6b,#232b3d); border:2px solid var(--accent-blue); display:flex; align-items:center; justify-content:center; color:var(--accent-blue); flex-shrink:0; }
+  .detail-device-icon.connected { border-color:var(--accent-teal); color:var(--accent-teal); background:linear-gradient(135deg,#14423b,#081f1c); }
+  .detail-name-block { flex:1; min-width:0; }
+  .detail-device-name { font-size:17px; font-weight:700; }
+  .detail-device-sub { font-size:11px; color:var(--text-muted); margin-top:3px; }
+  .detail-rssi-block { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+  .detail-rssi-bars { display:flex; align-items:flex-end; gap:3px; height:18px; }
+  .detail-rssi-bars .bar { width:4px; border-radius:2px; background:var(--border); }
+  .detail-rssi-bars .bar.active { background:currentColor; }
+  .detail-rssi-dbm { font-size:11px; color:var(--text-muted); }
+  .btn-disconnect,.btn-connect-device { padding:6px 16px; border-radius:8px; border:none; font-size:12px; font-weight:700; cursor:pointer; transition:all .15s; }
+  .btn-disconnect { background:#3a0f18; color:var(--accent-red); border:1.5px solid var(--accent-red); }
+  .btn-disconnect:hover { background:#5a1525; }
+  .btn-connect-device { background:#0f2a1a; color:var(--accent-teal); border:1.5px solid var(--accent-teal); }
+  .btn-connect-device:hover { background:#1a3a28; }
+  .detail-body { padding:14px 20px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1; }
+  .info-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 16px; }
+  .info-card-label { font-size:9px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
+  .info-card-value { font-size:12px; font-weight:600; color:var(--accent-blue); word-break:break-all; font-family:'SF Mono',Menlo,monospace; }
+  .info-card-row { display:grid; grid-template-columns:1fr auto; gap:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 16px; }
+  .rssi-label { font-size:9px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
+  .rssi-value { font-size:12px; font-weight:600; color:var(--accent-teal); font-family:'SF Mono',Menlo,monospace; }
+  .service-section-header { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.7px; padding:4px 0; }
+  .service-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:8px; }
+  .service-card-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--bg-hover); }
+  .svc-name { font-size:13px; font-weight:600; }
+  .svc-uuid { font-size:10px; color:var(--text-muted); font-family:'SF Mono',monospace; margin-top:2px; }
+  .svc-badge { background:rgba(75,142,255,.15); color:var(--accent-blue); border:1px solid rgba(75,142,255,.3); font-size:9px; font-weight:700; padding:2px 7px; border-radius:4px; }
+  .char-list { padding:8px 14px; display:flex; flex-direction:column; gap:8px; }
+  .char-name { font-size:12px; font-weight:600; }
+  .char-prop-badge { font-size:9px; padding:1px 5px; border-radius:3px; font-weight:700; background:rgba(255,255,255,.07); color:var(--text-secondary); margin-left:4px; }
+  .char-uuid { font-size:10px; color:var(--text-muted); font-family:'SF Mono',monospace; }
+  .char-value { font-size:11px; color:var(--accent-orange); margin-top:2px; font-family:'SF Mono',monospace; }
+
+  /* ── 이벤트 로그 ── */
+  .event-log-section { border-top:1px solid var(--border); display:flex; flex-direction:column; height:200px; flex-shrink:0; }
+  .event-log-header { display:flex; align-items:center; gap:6px; padding:6px 14px; background:var(--bg-panel); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .event-log-title { font-size:11px; font-weight:700; color:var(--text-secondary); }
+  .log-count { background:var(--bg-card); color:var(--text-secondary); font-size:10px; font-weight:700; padding:1px 7px; border-radius:10px; }
+  .log-filters { display:flex; gap:2px; }
+  .log-filter-btn { padding:2px 7px; border-radius:4px; border:none; font-size:10px; font-weight:700; cursor:pointer; background:transparent; color:var(--text-muted); transition:all .1s; }
+  .log-filter-btn.active { background:var(--bg-hover); color:var(--text-primary); }
+  .log-spacer { flex:1; }
+  .log-action-btn { padding:2px 9px; border-radius:4px; border:1px solid var(--border); font-size:10px; font-weight:700; cursor:pointer; background:transparent; color:var(--text-muted); }
+  .log-action-btn.danger { color:var(--accent-red); border-color:rgba(255,77,106,.3); }
+  .event-log-entries { flex:1; overflow-y:auto; padding:4px 0; }
+  .event-log-entries::-webkit-scrollbar { width:4px; }
+  .event-log-entries::-webkit-scrollbar-thumb { background:#333355; border-radius:4px; }
+  .log-entry { display:flex; align-items:flex-start; gap:8px; padding:3px 14px; font-size:11px; }
+  .log-entry:hover { background:var(--bg-hover); }
+  .log-time { color:var(--text-muted); font-family:'SF Mono',monospace; flex-shrink:0; width:90px; font-size:10px; padding-top:1px; }
+  .log-badge { font-size:9px; font-weight:700; padding:1px 6px; border-radius:3px; flex-shrink:0; margin-top:1px; }
+  .log-badge.DATA { background:rgba(75,142,255,.2); color:var(--accent-blue); }
+  .log-badge.SCAN { background:rgba(0,201,167,.2); color:var(--accent-teal); }
+  .log-badge.CONN { background:rgba(255,159,67,.2); color:var(--accent-orange); }
+  .log-badge.INFO { background:rgba(144,144,176,.2); color:var(--text-secondary); }
+  .log-badge.ERR  { background:rgba(255,77,106,.2); color:var(--accent-red); }
+  .log-msg { color:var(--text-secondary); font-family:'SF Mono',monospace; line-height:1.5; }
+  .log-msg .dev-name { color:var(--accent-teal); }
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="scanner-icon">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b8eff" stroke-width="2">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M4.93 4.93a10 10 0 0 0 0 14.14M19.07 4.93a10 10 0 0 1 0 14.14"/>
+      <path d="M7.76 7.76a6 6 0 0 0 0 8.48M16.24 7.76a6 6 0 0 1 0 8.48"/>
+    </svg>
+  </div>
+  <div>
+    <h1>BLE Scanner</h1>
+    <div class="scan-subtitle" id="scan-subtitle">스캔 대기 중...</div>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn-scan-toggle idle" id="btn-scan">
+    <div class="dot"></div><span>▶ 스캔 시작</span>
+  </button>
+</div>
+
+<div class="main-layout">
+  <!-- 왼쪽: 기기 목록 -->
+  <div class="left-panel">
+    <div class="search-area">
+      <div class="search-input-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9090b0" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search-input" id="search-input" type="text" placeholder="기기 이름 검색...">
+      </div>
+      <div class="uuid-filter-row">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9090b0" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <input class="uuid-filter-input" id="uuid-filter" type="text" placeholder="Service UUID 필터 (예: 180D)">
+      </div>
+      <div class="filter-row">
+        <label class="toggle-wrap" onclick="toggleAutoSubscribe()">
+          <div class="toggle on" id="toggle-auto"></div><span>자동 알림 구독</span>
+        </label>
+        <label class="toggle-wrap" onclick="toggleConnectable()">
+          <div class="toggle" id="toggle-connectable"></div><span>연결 가능만</span>
+        </label>
+        <div class="spacer"></div>
+        <select class="sort-select" id="sort-select" onchange="resortDevices()">
+          <option value="discovery">발견 순</option>
+          <option value="rssi">신호 강도</option>
+          <option value="name">이름 순</option>
+        </select>
+      </div>
+    </div>
+    <div class="device-list" id="device-list">
+      <div class="empty-list">스캔 시작 버튼을 눌러<br>주변 기기를 탐색하세요</div>
+    </div>
+    <div class="statusbar">
+      <div class="bt-dot" id="bt-dot"></div>
+      <span id="bt-status">BT 대기</span>
+      <div style="flex:1"></div>
+      <span id="device-count">발견: 0</span>
+    </div>
+  </div>
+
+  <!-- 오른쪽: 기기 상세 -->
+  <div class="right-panel" id="right-panel">
+    <div class="empty-state" id="empty-state">
+      <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M4.93 4.93a10 10 0 0 0 0 14.14M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        <path d="M7.76 7.76a6 6 0 0 0 0 8.48M16.24 7.76a6 6 0 0 1 0 8.48"/>
+      </svg>
+      <p>왼쪽 목록에서 기기를 선택하세요</p>
+    </div>
+    <div class="device-detail" id="device-detail" style="display:none;flex-direction:column"></div>
+  </div>
+</div>
+
+<script>
+const { ipcRenderer } = require('electron');
+
+// ── 상태 ─────────────────────────────────────────
+const devices = new Map();
+let selectedId = null;
+let isScanning = false;
+let autoSubscribe = true;
+let connectableOnly = false;
+let uuidFilter = '';
+let searchQuery = '';
+let sortMode = 'discovery';
+let discoveryOrder = 0;
+let logEntries = [];
+let logFilter = 'ALL';
+let connectedGatt = null;
+let registeredDevices = [];
+
+async function loadRegisteredList() {
+  registeredDevices = await ipcRenderer.invoke('load-registered-devices');
+}
+loadRegisteredList();
+
+// ── noble IPC: 기기 발견 이벤트 ─────────────────
+ipcRenderer.on('ble-device-discovered', (event, device) => {
+  const id = device.id;
+  if (!devices.has(id)) {
+    devices.set(id, { ...device, order: discoveryOrder++, firstSeen: new Date(), lastSeen: new Date(), connected: false });
+    addLog('SCAN', device.name, `발견됨 [${device.rssi} dBm]${device.manufacturerData ? ' · ' + device.manufacturerData.slice(0,12) : ''}`);
+  } else {
+    const d = devices.get(id);
+    d.rssi = device.rssi;
+    d.name = device.name;
+    d.uuids = device.uuids;
+    d.lastSeen = new Date();
+    if (device.manufacturerData) d.manufacturerData = device.manufacturerData;
+  }
+  document.getElementById('device-count').textContent = `발견: ${devices.size}`;
+  document.getElementById('scan-subtitle').textContent = `스캔 중... ${devices.size}개 발견`;
+  renderDeviceList();
+  if (selectedId === id) renderDetail();
+});
+
+ipcRenderer.on('ble-scan-error', (event, msg) => {
+  addLog('ERR', null, '스캔 오류: ' + msg);
+  isScanning = false;
+  updateScanBtn();
+  document.getElementById('bt-dot').style.background = '#e74c3c';
+  document.getElementById('bt-status').textContent = 'BT 오류';
+});
+
+// ── 유틸 ─────────────────────────────────────────
+function rssiStrength(rssi) { return rssi>=-55?4:rssi>=-65?3:rssi>=-75?2:1; }
+function rssiColor(rssi) { return rssi>=-60?'var(--signal-good)':rssi>=-75?'var(--signal-mid)':'var(--signal-bad)'; }
+function formatTime(d) {
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}`;
+}
+function shortId(id) { if(!id)return'???'; const c=id.replace(/-/g,''); return c.length<8?id:c.slice(0,4)+'..'+c.slice(-4); }
+function bars(strength, color, heights=[4,7,10,14]) {
+  return `<div class="signal-bars" style="color:${color}">${heights.map((h,i)=>`<div class="bar${i<strength?' active':''}" style="height:${h}px"></div>`).join('')}</div>`;
+}
+
+// ── 로그 ─────────────────────────────────────────
+function addLog(type, name, msg) {
+  logEntries.push({ time: new Date(), type, name, msg });
+  if (logEntries.length > 500) logEntries.shift();
+  const el = document.getElementById('log-entries');
+  if (el) renderLog(el);
+}
+function renderLog(el) {
+  if (!el) el = document.getElementById('log-entries');
+  if (!el) return;
+  
+  // 1. 기본 타입 필터 (ALL, DATA, CONN 등) 적용
+  let filtered = logFilter==='ALL' ? logEntries : logEntries.filter(e=>e.type===logFilter);
+  
+  // 2. 연결된 기기가 있을 경우, 해당 기기의 로그 및 시스템 공통 로그만 필터링하여 출력
+  const connectedDev = Array.from(devices.values()).find(d => d.connected);
+  if (connectedDev) {
+    filtered = filtered.filter(e => !e.name || e.name === connectedDev.name);
+  }
+
+  const cnt = document.getElementById('log-count');
+  if (cnt) cnt.textContent = filtered.length;
+  const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 30;
+  el.innerHTML = filtered.map(e=>`
+    <div class="log-entry">
+      <span class="log-time">${formatTime(e.time)}</span>
+      <span class="log-badge ${e.type}">${e.type}</span>
+      <span class="log-msg">${e.name?`<span class="dev-name">${e.name}</span>: `:''}${e.msg}</span>
+    </div>`).join('');
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+
+// ── 스캔 ─────────────────────────────────────────
+function startScan() {
+  if (isScanning) return;
+  isScanning = true;
+  updateScanBtn();
+  document.getElementById('bt-dot').style.background = 'var(--accent-teal)';
+  document.getElementById('bt-status').textContent = 'BT 활성';
+  addLog('SCAN', null, '스캔 시작 - 주변 BLE 기기 탐색 중...');
+  ipcRenderer.send('ble-start-scan');
+}
+
+function stopScan() {
+  ipcRenderer.send('ble-stop-scan');
+  isScanning = false;
+  updateScanBtn();
+  document.getElementById('bt-dot').style.background = '#444466';
+  document.getElementById('bt-status').textContent = 'BT 정지';
+  document.getElementById('scan-subtitle').textContent = `스캔 중지 (${devices.size}개 발견됨)`;
+  addLog('SCAN', null, '스캔 중지됨');
+}
+
+function updateScanBtn() {
+  const btn = document.getElementById('btn-scan');
+  if (isScanning) {
+    btn.className = 'btn-scan-toggle scanning';
+    btn.innerHTML = '<div class="dot"></div><span>■ 중지</span>';
+  } else {
+    btn.className = 'btn-scan-toggle idle';
+    btn.innerHTML = '<div class="dot"></div><span>▶ 스캔 시작</span>';
+  }
+}
+document.getElementById('btn-scan').addEventListener('click', ()=>{ if(isScanning) stopScan(); else startScan(); });
+
+// ── 필터/정렬 ────────────────────────────────────
+function toggleAutoSubscribe() { autoSubscribe=!autoSubscribe; document.getElementById('toggle-auto').className='toggle'+(autoSubscribe?' on':''); }
+function toggleConnectable() { connectableOnly=!connectableOnly; document.getElementById('toggle-connectable').className='toggle'+(connectableOnly?' on':''); renderDeviceList(); }
+function resortDevices() { sortMode=document.getElementById('sort-select').value; renderDeviceList(); }
+document.getElementById('search-input').addEventListener('input',e=>{ searchQuery=e.target.value.toLowerCase(); renderDeviceList(); });
+document.getElementById('uuid-filter').addEventListener('input',e=>{ uuidFilter=e.target.value.toLowerCase().replace(/-/g,''); renderDeviceList(); });
+
+function getSortedDevices() {
+  let arr = Array.from(devices.values());
+  if (searchQuery) arr=arr.filter(d=>d.name.toLowerCase().includes(searchQuery)||d.id.toLowerCase().includes(searchQuery));
+  if (connectableOnly) arr=arr.filter(d=>d.connectable!==false);
+  if (uuidFilter) arr=arr.filter(d=>d.uuids.some(u=>u.replace(/-/g,'').toLowerCase().includes(uuidFilter)));
+  if (sortMode==='rssi') arr.sort((a,b)=>b.rssi-a.rssi);
+  else if (sortMode==='name') arr.sort((a,b)=>a.name.localeCompare(b.name));
+  else arr.sort((a,b)=>a.order-b.order);
+  return arr;
+}
+
+// ── 기기 목록 렌더링 ─────────────────────────────
+function renderDeviceList() {
+  const list = document.getElementById('device-list');
+  const arr = getSortedDevices();
+  if (arr.length === 0) {
+    list.innerHTML = '<div class="empty-list">스캔 시작 버튼을 눌러<br>주변 기기를 탐색하세요</div>';
+    return;
+  }
+  list.innerHTML = arr.map(d => {
+    const s = rssiStrength(d.rssi);
+    const c = rssiColor(d.rssi);
+    return `<div class="device-item${d.id===selectedId?' selected':''}" onclick="selectDevice('${d.id}')">
+      <div class="device-icon${d.connected?' connected':''}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2 12 22 M4 8l8-6 8 6 M4 16l8 6 8-6"/>
+        </svg>
+      </div>
+      <div class="device-info">
+        <div class="device-name">${d.name}</div>
+        <div class="device-uuid">${shortId(d.id)}</div>
+        ${d.connected?'<span class="connected-badge">● 연결됨</span>':''}
+      </div>
+      <div class="signal-col">
+        ${bars(s, c)}
+        <div class="signal-dbm" style="color:${c}">${d.rssi>-99?d.rssi+' dBm':'— dBm'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 기기 선택/상세 ───────────────────────────────
+function selectDevice(id) { selectedId=id; renderDeviceList(); renderDetail(); }
+
+function renderDetail() {
+  const d = selectedId ? devices.get(selectedId) : null;
+  document.getElementById('empty-state').style.display = d ? 'none' : 'flex';
+  const el = document.getElementById('device-detail');
+  if (!d) { el.style.display='none'; return; }
+  el.style.display = 'flex';
+  const c = rssiColor(d.rssi);
+  const s = rssiStrength(d.rssi);
+
+  // 1. 이미 동일한 기기의 상세가 로드되어 있으면 RSSI 관련 부분만 실시간 갱신하여 포커스 해제 방지
+  const currentDetailId = el.getAttribute('data-device-id');
+  if (currentDetailId === d.id) {
+    const rssiTexts = el.querySelectorAll('.detail-rssi-dbm, .rssi-value');
+    rssiTexts.forEach(txt => {
+      if (txt.classList.contains('rssi-value')) {
+        txt.innerHTML = `${d.rssi>-99?d.rssi+' dBm':'—'} <span style="color:var(--text-muted);font-size:10px">${d.rssi>=-60?'(강함)':d.rssi>=-75?'(보통)':'(약함)'}</span>`;
+      } else {
+        txt.textContent = d.rssi>-99?d.rssi+' dBm':'— dBm';
+      }
+    });
+
+    const rssiBars = el.querySelectorAll('.detail-rssi-bars');
+    rssiBars.forEach(bar => {
+      bar.style.color = c;
+      const bars = bar.querySelectorAll('.bar');
+      bars.forEach((b, i) => {
+        if (i < s) b.classList.add('active');
+        else b.classList.remove('active');
+      });
+    });
+    return;
+  }
+
+  // 2. 다른 기기 선택 또는 첫 로드 시에만 전체 HTML 작성
+  el.setAttribute('data-device-id', d.id);
+
+  const reg = registeredDevices.find(r => r.id === d.id);
+  const nicknameVal = reg ? reg.nickname : '';
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-device-icon${d.connected?' connected':''}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2 12 22 M4 8l8-6 8 6 M4 16l8 6 8-6"/>
+        </svg>
+      </div>
+      <div class="detail-name-block">
+        <div class="detail-device-name">${d.name}</div>
+        <div class="detail-device-sub">
+          ${d.connected?'<span class="connected-badge">● 연결됨</span> ':''}
+          ${reg ? `<span class="connected-badge" style="background:rgba(75,142,255,0.15);color:var(--accent-blue);border:1px solid rgba(75,142,255,0.3)">★ 등록됨: ${reg.nickname}</span> ` : ''}
+          <span style="color:var(--text-muted);font-size:10px;font-family:monospace">${d.id||''}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="detail-rssi-block">
+          <div class="detail-rssi-bars" style="color:${c}">
+            ${[5,9,13,18].map((h,i)=>`<div class="bar${i<s?' active':''}" style="height:${h}px"></div>`).join('')}
+          </div>
+          <div class="detail-rssi-dbm">${d.rssi>-99?d.rssi+' dBm':'— dBm'}</div>
+        </div>
+        ${d.connected
+          ? `<button class="btn-disconnect" onclick="disconnectDevice()">✕ 해제</button>`
+          : `<button class="btn-connect-device" onclick="connectToSelected()">연결</button>`}
+      </div>
+    </div>
+
+    <div class="detail-body">
+      <div class="info-card-row">
+        <div>
+          <div class="info-card-label">DEVICE ID</div>
+          <div class="info-card-value" style="font-size:11px">${d.id||'—'}</div>
+        </div>
+        <div>
+          <div class="rssi-label">RSSI</div>
+          <div class="rssi-value">${d.rssi>-99?d.rssi+' dBm':'—'}
+            <span style="color:var(--text-muted);font-size:10px">${d.rssi>=-60?'(강함)':d.rssi>=-75?'(보통)':'(약함)'}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 보카보카 장치 등록 관리 카드 -->
+      <div class="info-card" style="margin-top: 10px;">
+        <div class="info-card-label">보카보카 장치 등록</div>
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <input type="text" id="device-nickname-input" placeholder="기기 별명 입력 (예: 내 로스터기)" value="${nicknameVal}" style="flex: 1; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--text-primary); outline: none;">
+          <button id="btn-register-device" onclick="handleRegisterDevice()" style="background: var(--accent-blue); color: white; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer;">
+            ${reg ? '별명 수정' : '장치 등록'}
+          </button>
+          ${reg ? `<button onclick="handleDeregisterDevice()" style="background: #3a0f18; color: var(--accent-red); border: 1.5px solid var(--accent-red); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer;">등록 해제</button>` : ''}
+        </div>
+        <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
+          * 이 장치를 등록해 두면, 메인 화면의 [연결하기] 버튼을 누를 때 등록된 별명을 선택하여 즉시 원클릭으로 연결할 수 있습니다.
+        </div>
+      </div>
+
+      ${d.uuids&&d.uuids.length?d.uuids.map(u=>`
+        <div class="info-card">
+          <div class="info-card-label">SERVICE UUID</div>
+          <div class="info-card-value">${u.toUpperCase()}</div>
+        </div>`).join(''):''}
+      ${d.services?renderServices(d.services):''}
+    </div>
+
+    <div class="event-log-section">
+      <div class="event-log-header">
+        <span class="event-log-title">이벤트 로그</span>
+        <span class="log-count" id="log-count">0</span>
+        <div class="log-filters">
+          ${['ALL','DATA','CONN','SCAN','INFO','ERR'].map(f=>`<button class="log-filter-btn${logFilter===f?' active':''}" onclick="setLogFilter('${f}')">${f}</button>`).join('')}
+        </div>
+        <div class="log-spacer"></div>
+        <button class="log-action-btn danger" onclick="clearLog()">✕ 지우기</button>
+      </div>
+      <div class="event-log-entries" id="log-entries"></div>
+    </div>
+  `;
+  renderLog();
+}
+
+function renderServices(services) {
+  if (!services||!services.length) return '';
+  return '<div class="service-section-header">GATT 서비스</div>' + services.map(svc=>`
+    <div class="service-card">
+      <div class="service-card-header">
+        <div><div class="svc-name">${svc.name}</div><div class="svc-uuid">${svc.uuid.toUpperCase()}</div></div>
+        <span class="svc-badge">GATT ${svc.chars?svc.chars.length:0} char</span>
+      </div>
+      ${svc.chars?`<div class="char-list">${svc.chars.map(c=>`
+        <div>
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">
+            <span class="char-name">${c.name}</span>
+            ${c.props.map(p=>`<span class="char-prop-badge">${p}</span>`).join('')}
+          </div>
+          <div class="char-uuid">${c.uuid.toUpperCase()}</div>
+          ${c.value?`<div class="char-value">${c.value}</div>`:''}
+        </div>`).join('')}</div>`:''}
+    </div>`).join('');
+}
+
+// ── 기기 등록 처리 ───────────────────────────────
+async function handleRegisterDevice() {
+  const d = devices.get(selectedId);
+  if (!d) return;
+  const input = document.getElementById('device-nickname-input');
+  const nickname = input ? input.value.trim() : '';
+  if (!nickname) {
+    alert('기기의 별명을 입력해 주세요.');
+    return;
+  }
+  const res = await ipcRenderer.invoke('register-device', { id: d.id, name: d.name, nickname: nickname });
+  if (res.success) {
+    addLog('INFO', d.name, `보카보카 장치 등록 완료 (별명: ${nickname})`);
+    await loadRegisteredList();
+    renderDeviceList();
+    const detailEl = document.getElementById('device-detail');
+    if (detailEl) detailEl.removeAttribute('data-device-id');
+    renderDetail();
+  } else {
+    addLog('ERR', d.name, `등록 실패: ${res.error}`);
+  }
+}
+
+async function handleDeregisterDevice() {
+  const d = devices.get(selectedId);
+  if (!d) return;
+  if (confirm(`보카보카 등록 기기에서 해제하시겠습니까?`)) {
+    const res = await ipcRenderer.invoke('deregister-device', d.id);
+    if (res.success) {
+      addLog('INFO', d.name, `보카보카 장치 등록 해제 완료`);
+      await loadRegisteredList();
+      renderDeviceList();
+      const detailEl = document.getElementById('device-detail');
+      if (detailEl) detailEl.removeAttribute('data-device-id');
+      renderDetail();
+    } else {
+      addLog('ERR', d.name, `해제 실패: ${res.error}`);
+    }
+  }
+}
+
+// ── 연결 ─────────────────────────────────────────
+function connectToSelected() {
+  const d = devices.get(selectedId);
+  if (!d) return;
+  addLog('CONN', d.name, '연결 시도 중...');
+  ipcRenderer.send('ble-connect-device', d.id);
+}
+
+function disconnectDevice() {
+  const d = devices.get(selectedId);
+  if (!d) return;
+  addLog('CONN', d.name, '연결 해제 시도 중...');
+  ipcRenderer.send('ble-disconnect-device', d.id);
+}
+
+// noble 기기 연결 성공 수신
+ipcRenderer.on('ble-connected', (event, { id }) => {
+  const d = devices.get(id);
+  if (d) {
+    d.connected = true;
+    addLog('CONN', d.name, '연결 성공! 서비스 탐색 중...');
+    renderDeviceList();
+    const detailEl = document.getElementById('device-detail');
+    if (detailEl) detailEl.removeAttribute('data-device-id');
+    renderDetail();
+  }
+});
+
+// noble 기기 연결 실패 수신
+ipcRenderer.on('ble-connection-failed', (event, { id, message }) => {
+  const d = devices.get(id);
+  addLog('ERR', d ? d.name : '기기', '연결 실패: ' + message);
+  renderDeviceList();
+  renderDetail();
+});
+
+// noble 기기 해제 수신
+ipcRenderer.on('ble-disconnected', (event, { id }) => {
+  const d = devices.get(id);
+  if (d) {
+    d.connected = false;
+    d.services = null;
+    addLog('CONN', d.name, '연결 해제됨');
+    renderDeviceList();
+    const detailEl = document.getElementById('device-detail');
+    if (detailEl) detailEl.removeAttribute('data-device-id');
+    renderDetail();
+  }
+});
+
+// noble 기기 서비스 탐색 결과 수신
+ipcRenderer.on('ble-services-discovered', (event, { id, services }) => {
+  const d = devices.get(id);
+  if (d) {
+    d.services = services;
+    addLog('CONN', d.name, `서비스 탐색 완료 (${services.length}개)`);
+    const detailEl = document.getElementById('device-detail');
+    if (detailEl) detailEl.removeAttribute('data-device-id');
+    renderDetail();
+  }
+});
+
+// noble 캐릭터리스틱 데이터 업데이트 수신
+ipcRenderer.on('ble-char-data', (event, { deviceId, serviceUuid, charUuid, value, isNotification }) => {
+  const d = devices.get(deviceId);
+  if (d && d.services) {
+    const cleanSvc = serviceUuid.replace(/-/g,'').toLowerCase();
+    const cleanChar = charUuid.replace(/-/g,'').toLowerCase();
+    const svc = d.services.find(s => s.uuid.replace(/-/g,'').toLowerCase() === cleanSvc);
+    if (svc && svc.chars) {
+      const ch = svc.chars.find(c => c.uuid.replace(/-/g,'').toLowerCase() === cleanChar);
+      if (ch) {
+        // format hex payload nicely: AA BB CC
+        const bytes = [];
+        for (let i = 0; i < value.length; i += 2) {
+          bytes.push(value.substring(i, i + 2));
+        }
+        const hex = bytes.join(' ') + ` (${bytes.length} bytes)`;
+        ch.value = hex;
+        const tag = ch.uuid.length === 32 ? ch.uuid.substring(4, 8) : ch.uuid;
+        addLog('DATA', d.name, `[${tag}] ${hex}`);
+        renderDetail();
+      }
+    }
+  }
+});
+
+// ── 로그 제어 ────────────────────────────────────
+function setLogFilter(f) { logFilter=f; renderDetail(); }
+function clearLog() { logEntries=[]; renderLog(); }
+
+// ── Known GATT UUIDs (렌더러 사이드 참고용) ────────
+const SVC_NAMES = {
+  '0000180a-0000-1000-8000-00805f9b34fb':'Device Information',
+  '0000180d-0000-1000-8000-00805f9b34fb':'Heart Rate',
+  '0000ffe0-0000-1000-8000-00805f9b34fb':'Serial (Custom)',
+  '00001800-0000-1000-8000-00805f9b34fb':'Generic Access',
+  '00001801-0000-1000-8000-00805f9b34fb':'Generic Attribute',
+};
+const CHAR_NAMES = {
+  '00002a00-0000-1000-8000-00805f9b34fb':'Device Name',
+  '00002a24-0000-1000-8000-00805f9b34fb':'Model Number String',
+  '00002a25-0000-1000-8000-00805f9b34fb':'Serial Number String',
+  '00002a29-0000-1000-8000-00805f9b34fb':'Manufacturer Name',
+  '00002a23-0000-1000-8000-00805f9b34fb':'System ID',
+  '0000ffe1-0000-1000-8000-00805f9b34fb':'Data (Custom)',
+};
+
+// 기기 별명 입력창 엔터 키 입력 시 기기 등록 이벤트 발동
+document.addEventListener('keydown', (e) => {
+  if (e.target && e.target.id === 'device-nickname-input' && e.key === 'Enter') {
+    e.preventDefault();
+    handleRegisterDevice();
+  }
+});
+
+// 초기화
+addLog('INFO',null,'BLE Scanner 준비 완료. [▶ 스캔 시작]을 눌러 주변 기기를 탐색하세요.');
+</script>
+</body>
+</html>

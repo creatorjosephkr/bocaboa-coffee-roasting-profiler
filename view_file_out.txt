@@ -1,0 +1,700 @@
+FOUND CONTENT
+private var sidebarView: some View {
++        VStack(spacing: 16) {
++            // 기기 연결 정보 카드
++            VStack(alignment: .leading, spacing: 8) {
++                Text("장치 연결 정보")
++                    .font(.system(size: 11, weight: .bold))
++                    .foregroundColor(.textSecondary)
++                
++                HStack {
++                    Image(systemName: "cpu")
++                        .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textTertiary)
++                    VStack(alignment: .leading, spacing: 2) {
++                        Text(manager.registeredDeviceName ?? "등록된 기기 없음")
++                            .font(.system(size: 13, weight: .semibold))
++                            .foregroundColor(.textPrimary)
++                        Text(manager.connectionStatusText)
++                            .font(.system(size: 11))
++                            .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textSecondary)
++                    }
++                    Spacer()
++                    
++                    Button {
++                        if manager.isScanning {
++                            manager.stopScanning()
++                        } else {
++                            if manager.selectedDevice != nil {
++                                if let dev = manager.selectedDevice {
++                                    manager.disconnect(dev)
++                                }
++                            } else {
++                                manager.startScanning()
++                            }
++                        }
++                    } label: {
++                        Text(manager.isScanning ? "스캔 중지" : (manager.selectedDevice != nil ? "연결 해제" : "기기 검색"))
++                            .font(.system(size: 11, weight: .semibold))
++                    }
++                    .buttonStyle(.borderedProminent)
++                    .tint(manager.isScanning ? .appError : .appAccent)
++                }
++                .padding(10)
++                .background(Color.appSurface)
++                .cornerRadius(8)
++                .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
++            }
++            .padding(.horizontal, 16)
++            .padding(.top, 16)
++            
++            // 기기 검색 리스트 (미연결 시 간이 표기)
++            if manager.selectedDevice == nil && (manager.isScanning || !manager.devices.isEmpty) {
++                VStack(alignment: .leading, spacing: 6) {
++                    Text("주변 장치 검색 결과")
++                        .font(.system(size: 11, weight: .bold))
++                        .foregroundColor(.textSecondary)
++                    
++                    ScrollView {
++                        VStack(spacing: 4) {
++                            ForEach(manager.devices) { device in
++                                Button {
++                                    manager.stopScanning()
++                                    manager.connect(device)
++               
+FOUND CONTENT
+private var sidebarView: some View {
+121:         VStack(spacing: 16) {
+122:             // 기기 연결 정보 카드
+123:             VStack(alignment: .leading, spacing: 8) {
+124:                 Text("장치 연결 정보")
+125:                     .font(.system(size: 11, weight: .bold))
+126:                     .foregroundColor(.textSecondary)
+127:                 
+128:                 HStack {
+129:                     Image(systemName: "cpu")
+130:                         .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textTertiary)
+131:                     VStack(alignment: .leading, spacing: 2) {
+132:                         Text(manager.registeredDeviceName ?? "등록된 기기 없음")
+133:                             .font(.system(size: 13, weight: .semibold))
+134:                             .foregroundColor(.textPrimary)
+135:                         Text(manager.connectionStatusText)
+136:                             .font(.system(size: 11))
+137:                             .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textSecondary)
+138:                     }
+139:                     Spacer()
+140:                     
+141:                     Button {
+142:                         if manager.isScanning {
+143:                             manager.stopScanning()
+144:                         } else if manager.registeredDeviceUUIDString != nil {
+145:                             manager.unregisterAndDisconnect()
+146:                         } else {
+147:                             manager.startScanning()
+148:                         }
+149:                     } label: {
+150:                         Text(manager.isScanning ? "스캔 중지" : (manager.registeredDeviceUUIDString != nil ? "연결 해제" : "기기 검색"))
+151:                             .font(.system(size: 11, weight: .semibold))
+152:                     }
+153:                     .buttonStyle(.borderedProminent)
+154:                     .tint(manager.isScanning ? .appError : .appAccent)
+155:                 }
+156:                 .padding(10)
+157:                 .background(Color.appSurface)
+158:                 .cornerRadius(8)
+159:                 .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+160:             }
+161:             .padding(.horizontal, 16)
+162:             .padding(.top, 16)
+163:             
+164:             // 기기 검색 리스트 (미연결 시 간이 표기)
+165:             if manager.selectedDevice == nil && (manager.isScanning || !manager.devices.isEmpty) {
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+121:         VStack(spacing: 16) {
+122:             // 기기 연결 정보 카드
+123:             VStack(alignment: .leading, spacing: 8) {
+124:                 Text("장치 연결 정보")
+125:                     .font(.system(size: 11, weight: .bold))
+126:                     .foregroundColor(.textSecondary)
+127:                 
+128:                 HStack {
+129:                     Image(systemName: "cpu")
+130:                         .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textTertiary)
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+124:         VStack(spacing: 16) {
+125:             // 기기 연결 정보 카드
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+205:         VStack(spacing: 16) {
+206:             // 기기 연결 정보 카드
+207:             VStack(alignment: .leading, spacing: 8) {
+208:                 Text("장치 연결 정보")
+209:                     .font(.system(size: 11, weight: .bold))
+210:                     .foregroundColor(.textSecondary)
+211:                 
+212:                 HStack {
+213:                     Image(systemName: "cpu")
+214:                         .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textTertiary)
+215:                     VStack(alignment: .leading, spacing: 2) {
+216:                         let nickname = nicknameStore.nickname(for: manager.registeredDeviceUUIDString ?? "")
+217:                         Text(nickname ?? manager.registeredDeviceName ?? "등록된 기기 없음")
+218:                             .font(.system(size: 13, weight: .semibold))
+219:                             .foregroundColor(.textPrimary)
+220:                         Text(manager.connectionStatusText)
+221:                             .font(.system(size: 11))
+222:                             .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textSecondary)
+223:                     }
+224:                     Spacer()
+225:                     
+226:                     let isConnected = manager.selectedDevice?.status.isConnected == true
+227:                     Button {
+228:                         if isConnected {
+229:                             manager.unregisterAndDisconnect()
+230:                         } else if manager.isScanning {
+231:                             manager.stopScanning()
+232:                         } else if manager.registeredDeviceUUIDString != nil {
+233:                             manager.unregisterAndDisconnect()
+234:                         } else {
+235:                             manager.startScanning()
+236:                         }
+237:                     } label: {
+238:                         Text(isConnected ? "연결 해제" : (manager.isScanning ? "스캔 중지" : (manager.registeredDeviceUUIDString != nil ? "연결 해제" : "기기 검색")))
+239:                             .font(.system(size: 11, weight: .semibold))
+240:                     }
+241:                     .buttonStyle(.borderedProminent)
+242:                     .tint(isConnected ? .appError : (manager.isScanning ? .appError : .appAccent))
+243:                 }
+244:                 .padding(10)
+245:                 .background(Color.appSurface)
+246:                 .cornerRadius(8)
+247:                 .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+248:             }
+249:             .padding(.horizontal, 16)
+250:             .padding(.top, 16)
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+205:         VStack(spacing: 16) {
+206:             // 기기 연결 정보 카드
+207:             VStack(alignment: .leading, spacing: 8) {
+208:                 Text("장치 연결 정보")
+209:                     .font(.system(size: 11, weight: .bold))
+210:                     .foregroundColor(.textSecondary)
+211:                 
+212:                 HStack {
+213:                     Image(systemName: "cpu")
+214:                         .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textTertiary)
+215:                     VStack(alignment: .leading, spacing: 2) {
+216:                         let nickname = nicknameStore.nickname(for: manager.registeredDeviceUUIDString ?? "")
+217:                         Text(nickname ?? manager.registeredDeviceName ?? "등록된 기기 없음")
+218:                             .font(.system(size: 13, weight: .semibold))
+219:                             .foregroundColor(.textPrimary)
+220:                         Text(manager.connectionStatusText)
+221:                             .font(.system(size: 11))
+222:                             .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textSecondary)
+223:                     }
+224:                     Spacer()
+225:                     
+226:                     let isConnected = manager.selectedDevice?.status.isConnected == true
+227:                     Button {
+228:                         if isConnected {
+229:                             manager.unregisterAndDisconnect()
+230:                         } else if manager.isScanning {
+231:                             manager.stopScanning()
+232:                         } else if manager.registeredDeviceUUIDString != nil {
+233:                             manager.unregisterAndDisconnect()
+234:                         } else {
+235:                             manager.startScanning()
+236:                         }
+237:                     } label: {
+238:                         Text(isConnected ? "연결 해제" : (manager.isScanning ? "스캔 중지" : (manager.registeredDeviceUUIDString != nil ? "연결 해제" : "기기 검색")))
+239:                             .font(.system(size: 11, weight: .semibold))
+240:                     }
+241:                     .buttonStyle(.borderedProminent)
+242:                     .tint(isConnected ? .appError : (manager.isScanning ? .appError : .appAccent))
+243:                 }
+244:                 .padding(10)
+245:                 .background(Color.appSurface)
+246:                 .cornerRadius(8)
+247:                 .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+248:             }
+249:             .padding(.horizontal, 16)
+250:             .padding(.top, 16)
+251:             
+252:             // 기기 검색 리스트 (미연결 시 간이 표기)
+253:             if manager.selectedDevice == nil && (manager.isScanning || !manager.devices.isEmpty) {
+254:                 VStack(alignment: .leading, spacing: 6) {
+255:                     Text("주변 장치 검색 결과")
+256:                         .font(.sy
+FOUND CONTENT
+private var sidebarView: some View {
+-        VStack(spacing: 16) {
++        VStack(spacing: 10) {
+             // 기기 연결 정보 카드
+-            VStack(alignment: .leading, spacing: 8) {
++            VStack(alignment: .leading, spacing: 5) {
+                 Text("장치 연결 정보")
+                     .font(.system(size: 11, weight: .bold))
+                     .foregroundColor(.textSecondary)
+@@ -240,7 +240,7 @@
+                     .buttonStyle(.borderedProminent)
+                     .tint(isConnected ? .appError : (manager.isScanning ? .appError : .appAccent))
+                 }
+-                .padding(10)
++                .padding(8)
+                 .background(Color.appSurface)
+                 .cornerRadius(8)
+                 .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+@@ -247,9 +247,9 @@
+             .padding(.horizontal, 16)
+-            .padding(.top, 16)
++            .padding(.top, 10)
+             
+             // 기기 검색 리스트 (미연결 시 간이 표기)
+             if manager.selectedDevice == nil && (manager.isScanning || !manager.devices.isEmpty) {
+-                VStack(alignment: .leading, spacing: 6) {
++                VStack(alignment: .leading, spacing: 4) {
+                     Text("주변 장치 검색 결과")
+                         .font(.system(size: 11, weight: .bold))
+                         .foregroundColor(.textSecondary)
+@@ -256,5 +256,5 @@
+                     ScrollView {
+-                        VStack(spacing: 4) {
++                        VStack(spacing: 3) {
+                             ForEach(manager.devices) { device in
+                                 Button {
+                                     manager.stopScanning()
+@@ -268,7 +268,7 @@
+                                             .font(.system(size: 10, design: .monospaced))
+                                             .foregroundColor(.textSecondary)
+                                     }
+-                                    .padding(.vertical, 6)
++                                    .padding(.vertical, 4)
+                                     .padding(.horizontal, 8)
+                                     .contentShape(Rectangle())
+                                 }
+@@ -278,7 +278,7 @@
+                             }
+                         }
+                     }
+-                    .frame(maxHeight: 120)
++                    .frame(maxHeight: 80)
+                 }
+                 .padding(.horizontal, 16)
+             }
+@@ -285,183 +285,183 @@
+             Divider().padding(.horizontal, 16)
+             
+             // 로스팅 세션 입력 폼
+-            VStack(spacing: 12) {
+-                    Text("로스팅 세션 설정")
+-                        .font(.system(size: 11, weight: .bold))
+-                        .foregroundColor(.textSecondary)
+-                        .frame(maxWidth: .infinity, alignment: .leading)
+-                    
+-                    VStack(alignment: .leading, spacing: 5) {
+-                        Text("커피 품종")
+-                            .font(.system(
+FOUND CONTENT
+private var sidebarView: some View {
+         VStack(spacing: 10) {
++            // 앱 로고 및 이름 헤더
++            HStack(spacing: 10) {
++                let iconImage = NSImage(named: "NSApplicationIcon") ?? NSImage(named: "AppIcon")
++                if let appIcon = iconImage {
++                    Image(nsImage: appIcon)
++                        .resizable()
++                        .aspectRatio(contentMode: .fit)
++                        .frame(width: 32, height: 32)
++                } else {
++                    Image(systemName: "flame.circle.fill")
++                        .resizable()
++                        .foregroundColor(.appWarning)
++                        .frame(width: 32, height: 32)
++                }
++                
++                VStack(alignment: .leading, spacing: 1) {
++                    Text("보카보카250BT")
++                        .font(.system(size: 13, weight: .bold))
++                        .foregroundColor(.textPrimary)
++                    Text("로스팅 프로파일러")
++                        .font(.system(size: 9, weight: .semibold))
++                        .foregroundColor(.textSecondary)
++                }
++                Spacer()
++            }
++            .padding(.horizontal, 16)
++            .padding(.top, 12)
++            
+             // 기기 연결 정보 카드
+             VStack(alignment: .leading, spacing: 5) {
+                 Text("장치 연결 정보")
+@@ -246,7 +246,7 @@
+                 .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+             }
+             .padding(.horizontal, 16)
+-            .padding(.top, 10)
++            // .padding(.top, 10) // 헤더 추가로 인한 탑 패딩 제거
+             
+             // 기기 검색 리스트 (미연결 시 간이 표기)
+             if manager.selectedDevice == nil && (manager.isScanning || !manager.devices.isEmpty) {
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.
+FOUND CONTENT
+private var sidebarView: some View {
+205:         VStack(spacing: 10) {
+206:             // 앱 로고 및 이름 헤더
+207:             HStack(spacing: 10) {
+208:                 let iconImage = NSImage(named: "NSApplicationIcon") ?? NSImage(named: "AppIcon")
+209:                 if let appIcon = iconImage {
+210:                     Image(nsImage: appIcon)
+211:                         .resizable()
+212:                         .aspectRatio(contentMode: .fit)
+213:                         .frame(width: 32, height: 32)
+214:                 } else {
+215:                     Image(systemName: "flame.circle.fill")
+216:                         .resizable()
+217:                         .foregroundColor(.appWarning)
+218:                         .frame(width: 32, height: 32)
+219:                 }
+220:                 
+221:                 VStack(alignment: .leading, spacing: 1) {
+222:                     Text("보카보카250BT")
+223:                         .font(.system(size: 13, weight: .bold))
+224:                         .foregroundColor(.textPrimary)
+225:                     Text("로스팅 프로파일러")
+226:                         .font(.system(size: 9, weight: .semibold))
+227:                         .foregroundColor(.textSecondary)
+228:                 }
+229:                 Spacer()
+230:             }
+231:             .padding(.horizontal, 16)
+232:             .padding(.top, 12)
+233:             
+234:             // 기기 연결 정보 카드
+235:             VStack(alignment: .leading, spacing: 5) {
+236:                 Text("장치 연결 정보")
+237:                     .font(.system(size: 11, weight: .bold))
+238:                     .foregroundColor(.textSecondary)
+239:                 
+240:                 HStack {
+241:                     Image(systemName: "cpu")
+242:                         .foregroundColor(manager.selectedDevice != nil ? .appSuccess : .textTertiary)
+243:                     VStack(alignment: .leading, spacing: 2) {
+244:                         let nickname = nicknameStore.nickname(for: manager.registeredDeviceUUIDString ?? "")
+245:                         Text(nickname ?? manager.registeredDeviceName ?? "등록된 기기 없음")
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+         VStack(spacing: 10) {
+             // 앱 로고 및 이름 헤더
+-            HStack(spacing: 10) {
++            HStack(spacing: 12) {
+                 let iconImage = NSImage(named: "NSApplicationIcon") ?? NSImage(named: "AppIcon")
+                 if let appIcon = iconImage {
+                     Image(nsImage: appIcon)
+@@ -211,5 +211,5 @@
+                         .aspectRatio(contentMode: .fit)
+-                        .frame(width: 32, height: 32)
++                        .frame(width: 64, height: 64)
+                 } else {
+                     Image(systemName: "flame.circle.fill")
+                         .resizable()
+@@ -216,18 +216,18 @@
+-                        .frame(width: 32, height: 32)
+-                }
+-                
+-                VStack(alignment: .leading, spacing: 1) {
++                        .frame(width: 64, height: 64)
++                }
++                
++                VStack(alignment: .leading, spacing: 3) {
+                     Text("보카보카250BT")
+-                        .font(.system(size: 13, weight: .bold))
++                        .font(.system(size: 24, weight: .bold))
+                         .foregroundColor(.textPrimary)
+                     Text("로스팅 프로파일러")
+-                        .font(.system(size: 9, weight: .semibold))
+-                        .foregroundColor(.textSecondary)
+-                }
+-                Spacer()
+-            }
+-            .padding(.horizontal, 16)
+-            .padding(.top, 12)
++                        .font(.system(size: 14, weight: .semibold))
++                        .foregroundColor(.textSecondary)
++                }
++                Spacer()
++            }
++            .padding(.horizontal, 16)
++            .padding(.top, 16)
+             
+             // 기기 연결 정보 카드
+             VStack(alignment: .leading, spacing: 5) {
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.
+FOUND CONTENT
+private var sidebarView: some View {
+-        VStack(spacing: 10) {
++        VStack(spacing: 14) {
+             // 앱 로고 및 이름 헤더
+             HStack(spacing: 12) {
+                 let iconImage = NSImage(named: "NSApplicationIcon") ?? NSImage(named: "AppIcon")
+@@ -274,11 +274,10 @@
+                 .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+             }
+             .padding(.horizontal, 16)
+-            // .padding(.top, 10) // 헤더 추가로 인한 탑 패딩 제거
+             
+             // 기기 검색 리스트 (미연결 시 간이 표기)
+             if manager.selectedDevice == nil && (manager.isScanning || !manager.devices.isEmpty) {
+-                VStack(alignment: .leading, spacing: 4) {
++                VStack(alignment: .leading, spacing: 6) {
+                     Text("주변 장치 검색 결과")
+                         .font(.system(size: 11, weight: .bold))
+                         .foregroundColor(.textSecondary)
+@@ -285,5 +285,5 @@
+                     ScrollView {
+-                        VStack(spacing: 3) {
++                        VStack(spacing: 4) {
+                             ForEach(manager.devices) { device in
+                                 Button {
+                                     manager.stopScanning()
+@@ -297,7 +297,7 @@
+                                             .font(.system(size: 10, design: .monospaced))
+                                             .foregroundColor(.textSecondary)
+                                     }
+-                                    .padding(.vertical, 4)
++                                    .padding(.vertical, 5)
+                                     .padding(.horizontal, 8)
+                                     .contentShape(Rectangle())
+                                 }
+@@ -307,7 +307,7 @@
+                             }
+                         }
+                     }
+-                    .frame(maxHeight: 80)
++                    .frame(maxHeight: 90)
+                 }
+                 .padding(.horizontal, 16)
+             }
+@@ -314,7 +314,7 @@
+             Divider().padding(.horizontal, 16)
+             
+             // 로스팅 세션 입력 폼
+-            VStack(spacing: 8) {
++            VStack(spacing: 12) {
+                 Text("로스팅 세션 설정")
+                     .font(.system(size: 11, weight: .bold))
+                     .foregroundColor(.textSecondary)
+@@ -321,5 +321,5 @@
+                 
+-                VStack(alignment: .leading, spacing: 3) {
++                VStack(alignment: .leading, spacing: 4) {
+                     Text("커피 품종")
+                         .font(.system(size: 11, weight: .medium))
+                         .foregroundColor(.textSecondary)
+@@ -327,7 +327,7 @@
+                 }
+                 
+                 HStack(spacing: 12) {
+-                    VStack(alignment: .leading, spacing: 3) {
++                    VStack(alignment: .leading, spacing: 4) {
+                         Text("투입 용량 (g)")
+                             .font(.system(size: 11, weight: .medium))
+                     
+FOUND CONTENT
+private var sidebarView: some View {
+211:         VStack(spacing: 14) {
+212:             // 앱 로고 및 이름 헤더
+213:             HStack(spacing: 12) {
+214:                 let iconImage = NSImage(named: "NSApplicationIcon") ?? NSImage(named: "AppIcon")
+215:                 if let appIcon = iconImage {
+216:                     Image(nsImage: appIcon)
+217:                         .resizable()
+218:                         .aspectRatio(contentMode: .fit)
+219:                         .frame(width: 64, height: 64)
+220:                 } else {
+221:                     Image(systemName: "flame.circle.fill")
+222:                         .resizable()
+223:                         .foregroundColor(.appWarning)
+224:                         .frame(width: 64, height: 64)
+225:                 }
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+247:         VStack(spacing: 14) {
+248:             // 앱 로고 및 이름 헤더
+249:             HStack(spacing: 12) {
+250:                 let iconImage = NSImage(named: "NSApplicationIcon") ?? NSImage(named: "AppIcon")
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+247:         VStack(spacing: 14) {
+248:             // 앱 로고 및 이름 헤더
+249:             HStack(spacing: 12) {
+250:                 let iconImage = NSImage(named: "NSApplicationIcon") ?? NSImage(named: "AppIcon")
+251:                 if let appIcon = iconImage {
+252:                     Image(nsImage: appIcon)
+253:                         .resizable()
+254:                         .aspectRatio(contentMode: .fit)
+255:                         .frame(width: 64, height: 64)
+256:                 } else {
+257:                     Image(systemName: "flame.circle.fill")
+258:                         .resizable()
+259:                         .foregroundColor(.appWarning)
+260:                         .frame(width: 64, height: 64)
+261:                 }
+262:                 
+263:                 VStack(alignment: .leading, spacing: 3) {
+264:                     Text("보카보아")
+265:                         .font(.system(size: 24, weight: .bold))
+266:                         .foregroundColor(.textPrimary)
+267:                     Text("보카보카 커피 로스터 프로파일링")
+268:                         .font(.system(size: 11, weight: .semibold))
+269:                         .foregroundColor(.textSecondary)
+270:                 }
+271:                 Spacer()
+272:             }
+273:             .padding(.horizontal, 16)
+274:             .padding(.top, 16)
+275:             
+276:             // ── 가이드 모드 배너 ────────────────────────────
+277:             if let guide = manager.guideSession {
+278:                 VStack(spacing: 4) {
+279:                     HStack(spacing: 6) {
+280:                         Image(systemName: "map.fill")
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+247:         VStack(spacing: 14) {
+248:             // 앱 로고 및 이름 헤더
+249:             HStack(spacing: 12) {
+250:                 let iconImage = NSImage(named: "NSApplicationIcon") ?? NSImage(named: "AppIcon")
+251:                 if let appIcon = iconImage {
+252:                     Image(nsImage: appIcon)
+253:                         .resizable()
+254:                         .aspectRatio(contentMode: .fit)
+255:                         .frame(width: 64, height: 64)
+256:                 } else {
+257:                     Image(systemName: "flame.circle.fill")
+258:                         .resizable()
+259:                         .foregroundColor(.appWarning)
+260:                         .frame(width: 64, height: 64)
+261:                 }
+262:                 
+263:                 VStack(alignment: .leading, spacing: 3) {
+264:                     Text("보카보아")
+265:                         .font(.system(size: 24, weight: .bold))
+266:                         .foregroundColor(.textPrimary)
+267:                     Text("보카보카 커피 로스터 프로파일링")
+268:                         .font(.system(size: 11, weight: .semibold))
+269:                         .foregroundColor(.textSecondary)
+270:                 }
+271:                 Spacer()
+272:             }
+273:             .padding(.horizontal, 16)
+274:             .padding(.top, 16)
+275:             
+276:             // ── 가이드 모드 배너 ────────────────────────────
+277:             if let guide = manager.guideSession {
+278:                 VStack(spacing: 4) {
+279:                     HStack(spacing: 6) {
+280:                         Image(systemName: "map.fill")
+281:                             .font(.system(size: 11))
+282:                             .foregroundColor(.appAccent)
+283:                         Text("가이드 모드")
+284:                             .font(.system(size: 11, weight: .bold))
+285:                             .foregroundColor(.appAccent)
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+265:         VStack(spacing: 14) {
+266:             // 앱 로고 및 이름 헤더
+267:             HStack(spacing: 12) {
+268:                 let iconImage = NSImage(named: "NSApplicationIcon") ?? NSImage(named: "AppIcon")
+269:                 if let appIcon = iconImage {
+270:                     Image(nsImage: appIcon)
+271:                         .resizable()
+272:                         .aspectRatio(contentMode: .fit)
+273:                         .frame(width: 64, height: 64)
+274:                 } else {
+275:                     Image(systemName: "flame.circle.fill")
+276:                         .resizable()
+277:                         .foregroundColor(.appWarning)
+278:                         .frame(width: 64, height: 64)
+279:                 }
+280:                 
+281:                 VStack(alignment: .leading, spacing: 3) {
+282:                     Text("가마지기")
+283:                         .font(.system(size: 24, weight: .bold))
+284:                         .foregroundColor(.textPrimary)
+285:                     Text("보카보카 250BT 커피 로스팅기(가마) 실시간 로스팅 프로파일러")
+286:                         .font(.system(size: 9, weight: .semibold))
+287:                         .foregroundColor(.textSecondary)
+288:                 }
+289:                 Spacer()
+290:             }
+291:             .padding(.horizontal, 16)
+292:             .padding(.top, 36)
+293:             
+294:             // ── 가이드 모드 배너 ────────────────────────────
+295:             if let guide = manager.guideSession {
+296:                 VStack(spacing: 4) {
+297:                     HStack(spacing: 6) {
+298:                         Image(systemName: "map.fill")
+299:                             .font(.system(size: 11))
+300:                             .foregroundColor(.appAccent)
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
+
+FOUND CONTENT
+private var sidebarView: some View {
+ 265 |         VStack(spacing: 14) {
+     |         `- warning: result of 'VStack<Content>' initializer is unused [#no-usage]
+ 266 |             // 앱 로고 및 이름 헤더
+ 267 |             HStack(spacing: 12) {
+
+/Users/joseph/Desktop/code/Bluetooth-Search/Sources/BluetoothSearch/ContentView.swift:264:40: error: function declares an opaque return type, but has no return statements in its body from which to infer an underlying type [#OpaqueTypeInference]
+ 262 |     // MARK: - Sidebar View (Left)
+ 263 |     
+ 264 |     private var sidebarView: some View {
+     |                                        `- error: function declares an opaque return type, but has no return statements in its body from which to infer an underlying type [#OpaqueTypeInference]
+ 265 |         VStack(spacing: 14) {
+ 266 |             // 앱 로고 및 이름 헤더
+
+[#OpaqueTypeInference]: <https://docs.swift.org/compiler/documentation/diagnostics/opaque-type-inference>
+
+
+FOUND CONTENT
+private var sidebarView: some View {
+ 265 |         VStack(spacing: 14) {
+     |         `- warning: result of 'VStack<Content>' initializer is unused [#no-usage]
+ 266 |             // 앱 로고 및 이름 헤더
+ 267 |             HStack(spacing: 12) {
+
+/Users/joseph/Desktop/code/Bluetooth-Search/Sources/BluetoothSearch/ContentView.swift:264:40: error: function declares an opaque return type, but has no return statements in its body from which to infer an underlying type [#OpaqueTypeInference]
+ 262 |     // MARK: - Sidebar View (Left)
+ 263 |     
+ 264 |     private var sidebarView: some View {
+     |                                        `- error: function declares an opaque return type, but has no return statements in its body from which to infer an underlying type [#OpaqueTypeInference]
+ 265 |         VStack(spacing: 14) {
+ 266 |             // 앱 로고 및 이름 헤더
+
+[#OpaqueTypeInference]: <https://docs.swift.org/compiler/documentation/diagnostics/opaque-type-inference>
+
+
